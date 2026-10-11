@@ -13,9 +13,10 @@ type Kind string
 
 // The kinds of change.
 const (
-	Copy Kind = "copy" // a shape that copies an earlier one is removed
-	Trim Kind = "trim" // line lying on earlier line is cut from the later shape
-	Join Kind = "join" // pieces of one outline are joined into one path
+	Copy  Kind = "copy"  // a shape that copies an earlier one is removed
+	Trim  Kind = "trim"  // line lying on earlier line is cut from the later shape
+	Join  Kind = "join"  // pieces of one outline are joined into one path
+	Close Kind = "close" // an outline left open by a small gap is closed
 )
 
 // Change is one change made, or that would be made, to the document.

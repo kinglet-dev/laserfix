@@ -27,7 +27,11 @@ func joins(d design.Design, changed []bool, s Settings, r *Report) []Edit {
 		}
 		subs[first.Shape][first.Sub] = &joined
 		shape := d.Shapes[first.Shape]
-		r.Changes = append(r.Changes, Change{Kind: Join, Element: shape.Element, At: shape.ToMM.Apply(joined.Start), Pieces: len(c.Links)})
+		kind := Join
+		if len(c.Links) == 1 {
+			kind = Close
+		}
+		r.Changes = append(r.Changes, Change{Kind: kind, Element: shape.Element, At: shape.ToMM.Apply(joined.Start), Pieces: len(c.Links)})
 	}
 	var edits []Edit
 	for _, i := range slices.Sorted(maps.Keys(subs)) {

@@ -79,6 +79,19 @@ Run again with -o FILE to write the repaired copy.
 		Expect(written).To(ContainSubstring("\n  Split    2 outlines joined from 12 pieces\n"))
 	})
 
+	It("says how many outlines it closes", func() {
+		// Arrange
+		r.Changes = []app.Change{{Kind: app.Close, At: geom.Point{X: 1, Y: 2}, Pieces: 1}}
+
+		// Act
+		preview := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+		written := write(report.About{Version: "0.1.0", Input: "a.svg", Output: "b.svg"}, r)
+
+		// Assert
+		Expect(preview).To(ContainSubstring("\n  Open     1 outline with a small gap → close it\n"))
+		Expect(written).To(ContainSubstring("\n  Open     1 outline closed\n"))
+	})
+
 	It("lists what it leaves as it is, with a fix for each", func() {
 		// Arrange
 		r.Settings = app.DefaultSettings

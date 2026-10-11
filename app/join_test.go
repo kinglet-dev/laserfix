@@ -95,4 +95,15 @@ var _ = Describe("Fix joins outlines split into pieces", func() {
 		Expect(r.Changes).To(HaveLen(1))
 		Expect(r.Changes[0].Kind).To(Equal(app.Trim))
 	})
+
+	It("closes an outline left open by a small gap", func() {
+		// Act
+		r, err := fixer.Fix(doc(hair("M10 10 H20 V20 H10 V10.02")), app.DefaultSettings)
+
+		// Assert
+		Expect(err).NotTo(HaveOccurred())
+		Expect(r.Changes).To(HaveLen(1))
+		Expect(r.Changes[0].Kind).To(Equal(app.Close))
+		Expect(string(r.Output)).To(Equal(string(doc(hair("M10 10 L20 10 L20 20 L10 20 L10 10.02 Z")))))
+	})
 })

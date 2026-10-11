@@ -48,6 +48,13 @@ var kinds = map[app.Kind]kind{
 		func(t total) string {
 			return fmt.Sprintf("%d %s joined from %d pieces", t.n, report.Plural(t.n, "outline", "outlines"), t.pieces)
 		}},
+	app.Close: {"Open",
+		func(t total) string {
+			return fmt.Sprintf("%d %s with a small gap → close %s", t.n, report.Plural(t.n, "outline", "outlines"), report.Plural(t.n, "it", "them"))
+		},
+		func(t total) string {
+			return fmt.Sprintf("%d %s closed", t.n, report.Plural(t.n, "outline", "outlines"))
+		}},
 }
 
 // changes lists the changes, one line per kind, in the order kinds first
