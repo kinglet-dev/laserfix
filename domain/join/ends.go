@@ -12,6 +12,7 @@ type end struct {
 	piece int // an index into the pieces
 	last  bool
 	at    geom.Point // mm
+	out   geom.Point // the way the line runs out of the piece there
 }
 
 // candidates lists the pieces that may be joined, and their ends in order:
@@ -29,7 +30,8 @@ func candidates(shapes []design.Shape, skip []bool) ([]Piece, []end) {
 			}
 			n := len(pieces)
 			pieces = append(pieces, Piece{i, j})
-			ends = append(ends, end{n, false, sub.Start}, end{n, true, sub.Segments[len(sub.Segments)-1].To})
+			back := sub.Reverse()
+			ends = append(ends, end{n, false, sub.Start, outward(back)}, end{n, true, back.Start, outward(sub)})
 		}
 	}
 	return pieces, ends
@@ -58,6 +60,34 @@ func near(ends []end, stroke func(end) string, r float64) [][]int {
 		}
 	}
 	return out
+}
+
+// outward is the way a subpath runs out of its last point: from the
+// nearest distinct point before it (a curve's control point, or the
+// segment's start).
+func outward(s geom.Subpath) geom.Point {
+	n := len(s.Segments)
+	last, from := s.Segments[n-1], s.Start
+	if n > 1 {
+		from = s.Segments[n-2].To
+	}
+	if last.Curved {
+		switch {
+		case last.C2 != last.To:
+			from = last.C2
+		case last.C1 != last.To:
+			from = last.C1
+		}
+	}
+	return geom.Point{X: last.To.X - from.X, Y: last.To.Y - from.Y}
+}
+
+// facing reports whether the line runs out of end e toward point p,
+// within 45°: two ends a gap apart that face each other look like one
+// line broken, not two lines that end near each other.
+func facing(e end, p geom.Point) bool {
+	vx, vy := p.X-e.at.X, p.Y-e.at.Y
+	return e.out.X*vx+e.out.Y*vy >= math.Sqrt2/2*math.Hypot(e.out.X, e.out.Y)*math.Hypot(vx, vy)
 }
 
 func dist(a, b geom.Point) float64 { return math.Hypot(b.X-a.X, b.Y-a.Y) }

@@ -161,6 +161,65 @@ var _ = Describe("Find reports what it won't join", func() {
 		Expect(r.Gaps).To(BeEmpty())
 	})
 
+	It("doesn't report the ends of parallel lines as a gap, since neither points at the other", func() {
+		// Act
+		r := join.Find([]design.Shape{line(pt(10, 25), pt(110, 25)), line(pt(10, 25.3), pt(110, 25.3))}, nil, params)
+
+		// Assert
+		Expect(r.Gaps).To(BeEmpty())
+	})
+
+	It("reports a gap between curves whose ends point at each other", func() {
+		// Arrange: two arcs of a circle, each stopping 0.2 mm short of the other.
+		// The first control point alone would make it run sideways out of its end.
+		a := shape(geom.Subpath{Start: pt(0, 10), Segments: []geom.Segment{geom.CubicTo(pt(30, 0.1), pt(9.95, 5.5), pt(9.95, 0.1))}})
+		b := shape(geom.Subpath{Start: pt(9.95, -0.1), Segments: []geom.Segment{geom.CubicTo(pt(9.95, -5.5), pt(5.5, -10), pt(0, -10))}})
+
+		// Act
+		r := join.Find([]design.Shape{a, b}, nil, params)
+
+		// Assert
+		Expect(r.Gaps).To(HaveLen(1))
+	})
+
+	It("finds which way a curve runs out of its end when a control point sits on that end", func() {
+		// Arrange
+		a := shape(geom.Subpath{Start: pt(0, 10), Segments: []geom.Segment{geom.CubicTo(pt(9.95, 10), pt(9.95, 0.1), pt(9.95, 0.1))}})
+		b := shape(geom.Subpath{Start: pt(9.95, -0.1), Segments: []geom.Segment{geom.CubicTo(pt(9.95, -0.1), pt(9.95, -10), pt(0, -10))}})
+
+		// Act
+		r := join.Find([]design.Shape{a, b}, nil, params)
+
+		// Assert
+		Expect(r.Gaps).To(HaveLen(1))
+	})
+
+	It("reports a gap at the end of a line of several pieces, from the way its last piece runs", func() {
+		// Act
+		r := join.Find([]design.Shape{line(pt(-100, 0.3), pt(10, 20), pt(10, 0.3)), line(pt(10, -0.3), pt(10, -10))}, nil, params)
+
+		// Assert
+		Expect(r.Gaps).To(HaveLen(1))
+	})
+
+	DescribeTable("doesn't report a line ending beside the end of a line running across it",
+		func(across, along design.Shape, acrossFirst bool) {
+			// Arrange
+			shapes := []design.Shape{along, across}
+			if acrossFirst {
+				shapes = []design.Shape{across, along}
+			}
+
+			// Act
+			r := join.Find(shapes, nil, params)
+
+			// Assert
+			Expect(r.Gaps).To(BeEmpty())
+		},
+		Entry("listed second", line(pt(10.5, -5), pt(10.5, 0)), line(pt(0, 0), pt(10, 0)), false),
+		Entry("listed first", line(pt(10.5, -5), pt(10.5, 0)), line(pt(0, 0), pt(10, 0)), true),
+	)
+
 	It("doesn't report ends further apart than the gap limit", func() {
 		// Act
 		r := join.Find([]design.Shape{line(pt(0, 0), pt(10, 0)), line(pt(12, 0), pt(20, 0))}, nil, params)

@@ -41,7 +41,7 @@ func gaps(ends []end, joinable, reportable [][]int) []Gap {
 			continue
 		}
 		for _, o := range ns {
-			if o > i && len(joinable[o]) == 0 {
+			if o > i && len(joinable[o]) == 0 && facing(ends[i], ends[o].at) && facing(ends[o], ends[i].at) {
 				out = append(out, Gap{At: ends[i].at, Size: dist(ends[i].at, ends[o].at)})
 			}
 		}
