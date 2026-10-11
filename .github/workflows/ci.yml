@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+      - name: Vet
+        run: go vet ./...
+      - name: Tests with race detector and coverage
+        run: go tool ginkgo -r --race --cover --coverprofile=coverage.out
+      - name: Require 100% coverage
+        run: scripts/check-coverage.sh coverage.out
+
+  checks:
+    name: Formatting, supply chain and fuzzing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+      - name: Formatting
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "Run gofmt -w on the files above."; exit 1; }
+      - name: go.sum matches the Go checksum database
+        # Rebuilds go.sum from scratch, verified against sum.golang.org, and compares.
+        run: |
+          mv go.sum go.sum.committed
+          go mod tidy
+          diff -u go.sum.committed go.sum
+      - name: README images are safe SVGs (no scripts or external references)
+        run: |
+          if grep -nE '<script|href=|xlink:|url\(|@import|<foreignObject' docs/images/*.svg; then
+            echo "Remove the scripts or external references above."; exit 1
+          fi
+      - name: Known vulnerabilities (govulncheck)
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      - name: Fuzz the fix (60 s)
+        run: go test ./app -run '^$' -fuzz=FuzzFix -fuzztime=60s
+
+  release-dry-run:
+    name: Release build (not published)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+      - uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.18.2
+          args: release --snapshot --clean --skip=publish
