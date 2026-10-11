@@ -35,6 +35,10 @@ var _ = Describe("Run stops and exits 2", func() {
 		Entry("an unknown flag", "flag provided but not defined: -fast", "--fast", "grid.svg"),
 		Entry("a length without a unit", "--same: length has no unit: add one of mm, cm, in, pt or px, for example 0.25mm", "--same", "0.02", "grid.svg"),
 		Entry("a same-line distance of zero", "--same must be more than zero", "--same", "0mm", "grid.svg"),
+		Entry("a join distance without a unit", "--join: length has no unit: add one of mm, cm, in, pt or px, for example 0.25mm", "--join", "1", "grid.svg"),
+		Entry("a join distance of zero", "--join must be more than zero", "--join", "0mm", "grid.svg"),
+		Entry("a gap limit without a unit", "--report-gaps: length has no unit: add one of mm, cm, in, pt or px, for example 0.25mm", "--report-gaps", "1", "grid.svg"),
+		Entry("a gap limit under the join distance", "--report-gaps must not be less than --join", "--report-gaps", "0.01mm", "grid.svg"),
 	)
 
 	It("when the file can't be opened", func() {

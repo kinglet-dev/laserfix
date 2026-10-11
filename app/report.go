@@ -11,22 +11,46 @@ import (
 // Kind names a kind of change; the names are stable, for --json.
 type Kind string
 
-// Copy is the removal of a shape that copies an earlier one.
-const Copy Kind = "copy"
+// The kinds of change.
+const (
+	Copy  Kind = "copy"  // a shape that copies an earlier one is removed
+	Trim  Kind = "trim"  // line lying on earlier line is cut from the later shape
+	Join  Kind = "join"  // pieces of one outline are joined into one path
+	Close Kind = "close" // an outline left open by a small gap is closed
+)
 
 // Change is one change made, or that would be made, to the document.
 type Change struct {
 	Kind    Kind
 	Element int        // the element changed, numbered as the reader numbers them
-	Of      int        // for a copy: the element it copies, which stays
+	Of      int        // for a copy: the element it copies, which stays; otherwise 0
 	At      geom.Point // where the change is: the start of the shape's line, mm
 	Length  float64    // line no longer burned twice, mm
+	Pieces  int        // for a join: how many pieces were joined
+}
+
+// FindingKind names a kind of finding; the names are stable, for --json.
+type FindingKind string
+
+// The kinds of finding: what laserfix reports and leaves as it is.
+const (
+	Junction FindingKind = "junction" // three or more ends meet, so which to join is unclear
+	Gap      FindingKind = "gap"      // ends too far apart to join safely
+	Stacked  FindingKind = "stacked"  // line still lying on other line: different colors, or filled shapes
+)
+
+// Finding is one kind of thing left as it is, and where.
+type Finding struct {
+	Kind      FindingKind
+	Locations []geom.Point // mm
+	Size      float64      // the widest gap, or the length of line burned twice, mm
 }
 
 // Measure is how much of a design burns twice.
 type Measure struct {
-	Stacked   float64 // line lying on other line, mm
-	Crossings int     // places where lines cross or one ends on another
+	Stacked   float64      // line lying on other line, mm
+	Crossings int          // places where lines cross or one ends on another
+	Stacks    []geom.Point // the middle of each stretch of line lying on other line
 }
 
 // Report is the outcome of fixing one document.
@@ -34,6 +58,7 @@ type Report struct {
 	Width, Height float64 // mm
 	Settings      Settings
 	Changes       []Change
+	Findings      []Finding // what was left as it is
 	Before, After Measure
 	Output        []byte // the fixed document
 }

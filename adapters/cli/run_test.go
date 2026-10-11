@@ -104,6 +104,34 @@ var _ = Describe("Run", func() {
 		Expect(w.written).To(HaveKey("fixed.svg"))
 	})
 
+	It("uses --join and --report-gaps for split outlines", func() {
+		// Arrange: two lines 0.1 mm apart end to end.
+		w.files["gap.svg"] = doc(`<path d="M10 10 H20" fill="none" stroke="#000"/><path d="M20.1 10 H30" fill="none" stroke="#000"/>`)
+
+		// Act
+		joined := w.run("--join", "0.2mm", "--json", "gap.svg")
+		joinedOut := w.stdout.String()
+		w.stdout.Reset()
+		quiet := w.run("--report-gaps", "0.05mm", "gap.svg")
+
+		// Assert
+		Expect(joined).To(Equal(cli.ExitChanges))
+		Expect(joinedOut).To(ContainSubstring(`"kind": "join"`))
+		Expect(quiet).To(Equal(cli.ExitClean))
+	})
+
+	It("exits 1 when it leaves something it reports, though nothing needs fixing", func() {
+		// Arrange
+		w.files["gap.svg"] = doc(`<path d="M10 10 H20" fill="none" stroke="#000"/><path d="M20.5 10 H30" fill="none" stroke="#000"/>`)
+
+		// Act
+		code := w.run("gap.svg")
+
+		// Assert
+		Expect(code).To(Equal(cli.ExitChanges))
+		Expect(w.stdout.String()).To(ContainSubstring("Left as they are"))
+	})
+
 	It("shows the version", func() {
 		// Act
 		code := w.run("--version")

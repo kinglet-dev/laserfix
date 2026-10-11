@@ -33,13 +33,16 @@ func (Format) Write(w io.Writer, a report.About, r app.Report) error {
 	switch {
 	case len(r.Changes) == 0:
 		b.WriteString("Nothing to fix.\n")
+		findings(&b, r)
 	case a.Output == "":
 		b.WriteString("Would change\n")
 		changes(&b, r.Changes, false)
+		findings(&b, r)
 		b.WriteString("\nRun again with -o FILE to write the repaired copy.\n")
 	default:
 		b.WriteString("Changed\n")
 		changes(&b, r.Changes, true)
+		findings(&b, r)
 		checked(&b, a, r)
 	}
 	if a.Output != "" {
@@ -47,6 +50,18 @@ func (Format) Write(w io.Writer, a report.About, r app.Report) error {
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// findings lists what was left as it is, with a fix for each.
+func findings(b *strings.Builder, r app.Report) {
+	if len(r.Findings) == 0 {
+		return
+	}
+	b.WriteString("\nLeft as they are\n")
+	for _, f := range r.Findings {
+		w := report.Describe(f, r.Settings)
+		line(b, w.Label, w.Message+" → "+w.Fix, f.Locations)
+	}
 }
 
 // checked shows the measurements before and after, and warns if worse.

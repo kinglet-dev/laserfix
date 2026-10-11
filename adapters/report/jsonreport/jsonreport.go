@@ -50,10 +50,11 @@ type settings struct {
 type change struct {
 	Kind    string  `json:"kind"`
 	Element int     `json:"element"`
-	Of      int     `json:"of"`
+	Of      *int    `json:"of,omitempty"` // only for a copy
 	X       float64 `json:"x_mm"`
 	Y       float64 `json:"y_mm"`
 	Length  float64 `json:"length_mm"`
+	Pieces  int     `json:"pieces,omitempty"` // only for a join
 }
 
 type measure struct {
@@ -61,13 +62,27 @@ type measure struct {
 	Crossings int     `json:"crossings"`
 }
 
-// finding is what laserfix reports but won't change; none yet.
-type finding struct{}
+// finding is what laserfix reports and leaves as it is, in the shape of
+// laserlint's findings.
+type finding struct {
+	Check     string     `json:"check"`
+	Severity  string     `json:"severity"`
+	Message   string     `json:"message"`
+	Fix       string     `json:"fix"`
+	Size      float64    `json:"size_mm"`
+	Locations []location `json:"locations"`
+}
+
+type location struct {
+	X float64 `json:"x_mm"`
+	Y float64 `json:"y_mm"`
+}
 
 type summary struct {
-	Changes int  `json:"changes"`
-	Written bool `json:"written"`
-	Worse   bool `json:"worse"`
+	Changes  int  `json:"changes"`
+	Findings int  `json:"findings"`
+	Written  bool `json:"written"`
+	Worse    bool `json:"worse"`
 }
 
 // Format is the JSON report (a Strategy for the command line).
@@ -87,14 +102,26 @@ func (Format) Write(w io.Writer, a report.About, r app.Report) error {
 		Before:   measure{Stacked: mm(r.Before.Stacked), Crossings: r.Before.Crossings},
 		After:    measure{Stacked: mm(r.After.Stacked), Crossings: r.After.Crossings},
 		Findings: []finding{},
-		Summary:  summary{Changes: len(r.Changes), Written: a.Output != "", Worse: r.Worse()},
+		Summary:  summary{Changes: len(r.Changes), Findings: len(r.Findings), Written: a.Output != "", Worse: r.Worse()},
 	}
 	if a.Output != "" {
 		d.Output = &output{Name: a.Output}
 	}
 	for _, c := range r.Changes {
-		d.Changes = append(d.Changes, change{Kind: string(c.Kind), Element: c.Element, Of: c.Of,
-			X: mm(c.At.X), Y: mm(c.At.Y), Length: mm(c.Length)})
+		out := change{Kind: string(c.Kind), Element: c.Element, X: mm(c.At.X), Y: mm(c.At.Y), Length: mm(c.Length), Pieces: c.Pieces}
+		if c.Kind == app.Copy {
+			out.Of = &c.Of
+		}
+		d.Changes = append(d.Changes, out)
+	}
+	for _, f := range r.Findings {
+		words := report.Describe(f, r.Settings)
+		out := finding{Check: string(f.Kind), Severity: "warning", Message: words.Message, Fix: words.Fix,
+			Size: mm(f.Size), Locations: []location{}}
+		for _, p := range f.Locations {
+			out.Locations = append(out.Locations, location{X: mm(p.X), Y: mm(p.Y)})
+		}
+		d.Findings = append(d.Findings, out)
 	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")

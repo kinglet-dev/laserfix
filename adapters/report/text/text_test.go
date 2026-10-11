@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/kinglet-dev/core/domain/geom"
 	"github.com/kinglet-dev/laserfix/adapters/report"
 	"github.com/kinglet-dev/laserfix/adapters/report/text"
 	"github.com/kinglet-dev/laserfix/app"
@@ -42,6 +43,77 @@ Would change
            at (10.0, 10.0), (40.0, 10.0)
 
 Run again with -o FILE to write the repaired copy.
+`))
+	})
+
+	It("lists each kind of change on its own line, in the order they first appear", func() {
+		// Arrange
+		trim := app.Change{Kind: app.Trim, Element: 3, At: geom.Point{X: 20, Y: 20}, Length: 10}
+		r.Changes = []app.Change{copyAt(10, 10), trim}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, r)
+
+		// Assert
+		Expect(got).To(ContainSubstring(`
+  Copies   1 shape, 40.0 mm of line burned twice → remove the later copy
+           at (10.0, 10.0)
+  Shared   1 shape, 10.0 mm of line burned twice → trim it from the later shape
+           at (20.0, 20.0)
+`))
+	})
+
+	It("counts outlines and pieces for joins", func() {
+		// Arrange
+		r.Changes = []app.Change{
+			{Kind: app.Join, At: geom.Point{X: 1, Y: 2}, Pieces: 4},
+			{Kind: app.Join, At: geom.Point{X: 3, Y: 4}, Pieces: 8},
+		}
+
+		// Act
+		preview := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+		written := write(report.About{Version: "0.1.0", Input: "a.svg", Output: "b.svg"}, r)
+
+		// Assert
+		Expect(preview).To(ContainSubstring("\n  Split    2 outlines in 12 pieces → join each into one path\n           at (1.0, 2.0), (3.0, 4.0)\n"))
+		Expect(written).To(ContainSubstring("\n  Split    2 outlines joined from 12 pieces\n"))
+	})
+
+	It("says how many outlines it closes", func() {
+		// Arrange
+		r.Changes = []app.Change{{Kind: app.Close, At: geom.Point{X: 1, Y: 2}, Pieces: 1}}
+
+		// Act
+		preview := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+		written := write(report.About{Version: "0.1.0", Input: "a.svg", Output: "b.svg"}, r)
+
+		// Assert
+		Expect(preview).To(ContainSubstring("\n  Open     1 outline with a small gap → close it\n"))
+		Expect(written).To(ContainSubstring("\n  Open     1 outline closed\n"))
+	})
+
+	It("lists what it leaves as it is, with a fix for each", func() {
+		// Arrange
+		r.Settings = app.DefaultSettings
+		r.Findings = []app.Finding{
+			{Kind: app.Junction, Locations: []geom.Point{{X: 50, Y: 50}}},
+			{Kind: app.Gap, Locations: []geom.Point{{X: 1, Y: 1}, {X: 2, Y: 2}}, Size: 0.6},
+			{Kind: app.Stacked, Locations: []geom.Point{{X: 5, Y: 5}}, Size: 40},
+		}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+
+		// Assert
+		Expect(got).To(HaveSuffix(`Nothing to fix.
+
+Left as they are
+  Junction 1 place where three or more ends meet, so which to join is unclear → join them by hand
+           at (50.0, 50.0)
+  Gap      2 gaps up to 0.6 mm, wider than 0.05 mm (--join) → close them by hand, or raise --join
+           at (1.0, 1.0), (2.0, 2.0)
+  Overlap  40.0 mm of line still burns twice, shared by different colors or filled shapes → combine them by hand if they should burn once
+           at (5.0, 5.0)
 `))
 	})
 

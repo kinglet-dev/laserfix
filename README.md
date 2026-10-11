@@ -15,7 +15,7 @@
 
 # laserfix
 
-**Repairs an SVG so your laser burns each line once:** it finds shapes that copy an earlier shape, such as an outline pasted in place twice, and writes a copy of the file without them.
+**Repairs an SVG so your laser burns each line once:** it removes shapes pasted twice, trims line that two shapes share from the later one, and joins outlines stored as separate pieces. Whatever it can't fix safely, it reports.
 
 It never changes the file you give it. It shows what it would change first, and after writing a repaired copy it measures it again to show the fix worked. It's the "fix" step after [laserlint](https://github.com/kinglet-dev/laserlint)'s "check".
 
@@ -55,11 +55,18 @@ Wrote stacked-fixed.svg. Check it with: laserlint stacked-fixed.svg
 
 ## What it fixes
 
-- **Copies:** a shape is a copy when it has the same fill and stroke as an earlier shape and its line lies within 0.02 mm (`--same`) of it everywhere, wherever it starts and whichever way it runs. The later copy is removed; the earlier one stays. This covers shapes pasted in place, a square drawn from another corner or in the other direction, and a `<circle>` against the same circle drawn as a path.
-- **Kept as they were:** every other element and byte of the file: ids, styles, groups, layers, transforms and comments.
-- **Shapes of different colors are never copies,** because laser software chooses settings by color.
+Only hairlines (stroke, no fill) of the same stroke color are changed, because laser software chooses its settings by color, and cutting into a filled shape's outline would break its fill.
 
-Trimming lines shared by two shapes, and joining outlines stored as several pieces, are planned next.
+- **Copies:** a shape with the same fill and stroke as an earlier shape, whose line lies within 0.02 mm (`--same`) of it everywhere, wherever it starts and whichever way it runs, is removed. This covers shapes pasted in place, a square drawn from another corner or the other way round, and a `<circle>` against the same circle drawn as a path. Filled copies are removed too.
+- **Shared line:** where a shape's line lies on an earlier shape's line (within `--same`, running alongside it), that stretch is trimmed from the later shape; the earlier one stays whole. Neighboring parts in a grid, nested shapes and finger joints laid out edge to edge are cut once. Lines that only cross, or meet at a corner, are left alone. Curves stay curves: they are cut exactly where the shared stretch starts and ends.
+- **Split outlines:** pieces whose ends meet within 0.05 mm (`--join`, [LightBurn's Auto-Join distance](https://docs.lightburnsoftware.com/2.1/Collections/GettingADesignLaserReady/)) are joined into one path, and closed when the chain comes back to its start. An outline left open by a gap that small is closed.
+- **Kept as they were:** every other element and byte of the file: ids, styles, groups, layers, transforms and comments. A trimmed or joined `<rect>`, `<circle>` or other shape becomes a `<path>` with its other attributes unchanged, in its own units.
+
+**Reported, never changed** (under "Left as they are", with a fix for each):
+
+- three or more ends meeting at one point, where it's unclear which to join;
+- gaps wider than `--join` and up to 1 mm (`--report-gaps`), where one end points at the other;
+- line that still burns twice because shapes of different colors, or filled shapes, share it.
 
 ## Installation
 
@@ -95,14 +102,16 @@ laserfix [flags] - -o -        read standard input, write standard output
 | Flag | Effect |
 |---|---|
 | `-o OUT` | Write the repaired copy to `OUT`, a new file; an existing file is never replaced. `-` writes standard output, and the report then goes to standard error. |
-| `--same LENGTH` | Lines nearer than this are the same line (default `0.02mm`). Lengths need a unit: `mm`, `cm`, `in`, `pt` or `px`. |
+| `--same LENGTH` | Lines nearer than this are the same line (default `0.02mm`). |
+| `--join LENGTH` | Ends nearer than this are joined (default `0.05mm`). |
+| `--report-gaps LENGTH` | Gaps wider than `--join` and up to this are reported, never closed (default `1mm`). |
 | `--json` | Write the report as JSON (`kinglet.report/v1`), with a `changes` list and the measurements `before` and `after`. |
 | `--version` | Show the version. |
 | `-h`, `--help` | Show help with examples. |
 
-Flags can come before or after the file.
+Lengths need a unit: `mm`, `cm`, `in`, `pt` or `px`. Flags can come before or after the file.
 
-**Exit status:** `0` nothing left to fix; `1` changes are needed (preview), or the written copy came out worse; `2` the file couldn't be read or written.
+**Exit status:** `0` nothing left to fix; `1` changes are needed (preview), something was left as it is, or the written copy came out worse; `2` the file couldn't be read or written.
 
 **In a pipeline:** `cat stacked.svg | laserfix - -o - | laserlint -`
 
@@ -111,7 +120,7 @@ Flags can come before or after the file.
 - **Systems:** Windows, macOS and Linux, on 64-bit Intel/AMD (`amd64`) and Arm (`arm64`). Tested on all three in CI.
 - **SVG:** what [laserlint](https://github.com/kinglet-dev/laserlint#compatibility) reads: `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon` and groups, with transforms, `viewBox` and sizes in any unit.
 - **Not read yet:** clones (`<use>`), text, embedded images and CSS classes. laserfix stops with the Inkscape fix: Edit → Clone → Unlink Clone, or Path → Object to Path.
-- **Limits:** files up to 25 MB and 200,000 elements, so a hostile file can't hang it.
+- **Limits:** files up to 25 MB and 200,000 elements, and a cap on the work of finding shared line, so a hostile file can't hang it.
 
 ## Configuration
 

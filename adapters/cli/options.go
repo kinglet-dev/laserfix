@@ -26,6 +26,8 @@ func parse(args []string) (options, error) {
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&o.output, "o", "", "")
 	same := fs.String("same", "0.02mm", "")
+	join := fs.String("join", "0.05mm", "")
+	gaps := fs.String("report-gaps", "1mm", "")
 	fs.BoolVar(&o.json, "json", false, "")
 	fs.BoolVar(&o.version, "version", false, "")
 	files, err := parseAll(fs, args)
@@ -33,18 +35,41 @@ func parse(args []string) (options, error) {
 		return o, err
 	}
 	o.settings = app.DefaultSettings
-	l, err := units.ParseLength(*same)
-	if err != nil {
-		return o, fmt.Errorf("--same: %w", err)
+	if o.settings.Same, err = positive("--same", *same); err != nil {
+		return o, err
 	}
-	if o.settings.Same = l.Millimetres(); o.settings.Same == 0 {
-		return o, errors.New("--same must be more than zero")
+	if o.settings.Join, err = positive("--join", *join); err != nil {
+		return o, err
+	}
+	if o.settings.Gaps, err = length("--report-gaps", *gaps); err != nil {
+		return o, err
+	}
+	if o.settings.Gaps < o.settings.Join {
+		return o, errors.New("--report-gaps must not be less than --join")
 	}
 	if len(files) != 1 {
 		return o, errors.New("give one SVG file to fix, or - to read standard input")
 	}
 	o.file = files[0]
 	return o, nil
+}
+
+// length reads a length that must have a unit, in millimeters.
+func length(flag, value string) (float64, error) {
+	l, err := units.ParseLength(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", flag, err)
+	}
+	return l.Millimetres(), nil
+}
+
+// positive reads a length that must also be more than zero.
+func positive(flag, value string) (float64, error) {
+	v, err := length(flag, value)
+	if err == nil && v == 0 {
+		err = fmt.Errorf("%s must be more than zero", flag)
+	}
+	return v, err
 }
 
 // parseAll parses flags wherever they come, and returns the other
