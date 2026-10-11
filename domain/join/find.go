@@ -24,7 +24,8 @@ func Find(shapes []design.Shape, skip []bool, p Params) Result {
 	}
 	r.Gaps = gaps(ends, joinable, near(ends, stroke, p.ReportGaps))
 	for _, c := range chains(len(pieces), partner) {
-		single := len(c.links) == 1 && ends[2*c.links[0]].at == ends[2*c.links[0]+1].at
+		n := c.links[0] / 2 // the first piece; its ends are 2n and 2n+1
+		single := len(c.links) == 1 && ends[2*n].at == ends[2*n+1].at
 		if !single {
 			r.Chains = append(r.Chains, c.chain(pieces, ends))
 		}

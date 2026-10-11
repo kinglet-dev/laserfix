@@ -1,0 +1,2 @@
+go test fuzz v1
+string("<svg s=\"B2C00/7\" width=\"100mm\" height=\"100mm\" viewBox=\"0 0 100 100\">X0\"z><path d=\"M10 50 H50\" fill=\"none\" stroke=\"#000\"/><path d=\"M50 50 H90\" fill=\"none\" stroke=\"#10o\"/><path d=\"M50 90ZV90\" fill=\"none\" stroke=\"0000\"/></svg>")

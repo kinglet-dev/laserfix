@@ -80,6 +80,10 @@ func (c Chain) First() Piece {
 	return first
 }
 
+// tiny is a gap too small to write down, in the first piece's units: path
+// data is written to a millionth.
+const tiny = 1e-7
+
 // Joined draws a chain as one subpath in the units of its first piece's
 // shape, bridging each small gap with a straight line.
 func Joined(shapes []design.Shape, c Chain) geom.Subpath {
@@ -94,7 +98,7 @@ func Joined(shapes []design.Shape, c Chain) geom.Subpath {
 		sub = geom.Path{Subpaths: []geom.Subpath{sub}}.Transform(s.ToMM.Then(toFirst)).Subpaths[0]
 		if i == 0 {
 			out.Start = sub.Start
-		} else if at := out.Segments[len(out.Segments)-1].To; at != sub.Start {
+		} else if dist(out.Segments[len(out.Segments)-1].To, sub.Start) > tiny {
 			out.Segments = append(out.Segments, geom.LineTo(sub.Start))
 		}
 		out.Segments = append(out.Segments, sub.Segments...)

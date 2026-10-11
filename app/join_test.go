@@ -48,8 +48,8 @@ var _ = Describe("Fix joins outlines split into pieces", func() {
 			`<path d="M50 50 L60 50 L60 60 L50 60 Z" transform="scale(2)" fill="none" stroke="#000"/>`))))
 	})
 
-	It("doesn't join pieces of shapes it trimmed", func() {
-		// Arrange: the second square loses its shared side and is left open.
+	It("joins what is left of a trimmed shape to a piece meeting its end, so one run is enough", func() {
+		// Arrange: the second square loses its shared side; a line starts at its open end.
 		src := doc(sq("10") + sq("20") + hair("M20 20 V30"))
 
 		// Act
@@ -57,8 +57,8 @@ var _ = Describe("Fix joins outlines split into pieces", func() {
 
 		// Assert
 		Expect(err).NotTo(HaveOccurred())
-		Expect(r.Changes).To(HaveLen(1))
-		Expect(r.Changes[0].Kind).To(Equal(app.Trim))
+		Expect(kinds(r.Changes)).To(Equal([]app.Kind{app.Trim, app.Join}))
+		Expect(string(r.Output)).To(Equal(string(doc(sq("10") + `<path fill="none" stroke="#000" d="M20 10 L30 10 L30 20 L20 20 L20 30"/>`))))
 	})
 
 	It("joins two outlines of one element, each with another piece", func() {
@@ -86,14 +86,15 @@ var _ = Describe("Fix joins outlines split into pieces", func() {
 		Expect(r.Changes[0].At).To(Equal(geom.Point{X: 10, Y: 10}))
 	})
 
-	It("doesn't join an open line it trimmed to another piece meeting its end", func() {
-		// Act
+	It("joins the rest of a trimmed line to the pieces it now meets end to end", func() {
+		// Act: once trimmed, the second line runs on from the first, and the third from it.
 		r, err := fixer.Fix(doc(hair("M0 0 H10")+hair("M5 0 H20")+hair("M20 0 V10")), app.DefaultSettings)
 
 		// Assert
 		Expect(err).NotTo(HaveOccurred())
-		Expect(r.Changes).To(HaveLen(1))
-		Expect(r.Changes[0].Kind).To(Equal(app.Trim))
+		Expect(kinds(r.Changes)).To(Equal([]app.Kind{app.Trim, app.Join}))
+		Expect(r.Changes[1].Pieces).To(Equal(3))
+		Expect(string(r.Output)).To(Equal(string(doc(hair("M0 0 L10 0 L20 0 L20 10")))))
 	})
 
 	It("closes an outline left open by a small gap", func() {
@@ -107,3 +108,12 @@ var _ = Describe("Fix joins outlines split into pieces", func() {
 		Expect(string(r.Output)).To(Equal(string(doc(hair("M10 10 L20 10 L20 20 L10 20 L10 10.02 Z")))))
 	})
 })
+
+// kinds lists the kinds of the changes, in order.
+func kinds(cs []app.Change) []app.Kind {
+	var out []app.Kind
+	for _, c := range cs {
+		out = append(out, c.Kind)
+	}
+	return out
+}

@@ -31,6 +31,17 @@ var _ = Describe("Find joins pieces whose ends meet", func() {
 		Expect(points(got)).To(Equal([]geom.Point{pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10), pt(0, 0)}))
 	})
 
+	It("doesn't bridge a gap too small to write down", func() {
+		// Arrange
+		shapes := []design.Shape{line(pt(0, 0), pt(10, 0)), line(pt(10+1e-9, 0), pt(20, 0))}
+
+		// Act
+		r := join.Find(shapes, nil, params)
+
+		// Assert
+		Expect(join.Joined(shapes, r.Chains[0]).Segments).To(HaveLen(2))
+	})
+
 	It("joins pieces into an open chain, keeping the earliest piece's direction", func() {
 		// Arrange
 		shapes := []design.Shape{line(pt(10, 0), pt(20, 0)), line(pt(0, 0), pt(10, 0.03))}
@@ -52,6 +63,15 @@ var _ = Describe("Find joins pieces whose ends meet", func() {
 		// Assert
 		Expect(r.Chains).To(HaveLen(1))
 		Expect(r.Chains[0].Closed).To(BeTrue())
+	})
+
+	It("closes an outline that comes after other pieces", func() {
+		// Act
+		r := join.Find([]design.Shape{line(pt(50, 50), pt(60, 50)), line(pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10), pt(0, 0.02))}, nil, params)
+
+		// Assert
+		Expect(r.Chains).To(HaveLen(1))
+		Expect(r.Chains[0].Links[0].Piece).To(Equal(join.Piece{Shape: 1, Sub: 0}))
 	})
 
 	It("leaves an outline whose ends already meet exactly, since nothing would change", func() {
