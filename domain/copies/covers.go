@@ -10,11 +10,11 @@ import (
 // segment is one straight piece of a flattened shape.
 type segment struct{ a, b geom.Point }
 
-// segments flattens a shape into the straight pieces it draws, closing
-// closed lines.
+// segments flattens a shape into the straight pieces the laser scores,
+// closing closed lines; core's ScoredLines decides which lines are closed.
 func segments(s design.Shape, flatten float64) []segment {
 	var out []segment
-	for _, l := range s.Path.Flatten(flatten) {
+	for _, l := range (design.Design{Shapes: []design.Shape{s}}).ScoredLines(flatten) {
 		pts := l.Points
 		if l.Closed { // Flatten gives every line at least its start
 			pts = append(pts[:len(pts):len(pts)], pts[0])

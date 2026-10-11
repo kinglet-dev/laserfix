@@ -120,4 +120,17 @@ var _ = Describe("Find compares whole lines within the same-line distance", func
 		// Assert
 		Expect(got).To(Equal([]copies.Copy{{Shape: 1, Of: 0}}))
 	})
+
+	It("finds a copy of a filled shape whose outline is left open, because the fill closes it", func() {
+		// Arrange
+		closed := design.Shape{Path: outline(true, pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10)), Filled: true, Fill: "#000000", Stroke: "none"}
+		open := closed
+		open.Path = outline(false, pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10))
+
+		// Act
+		got := copies.Find([]design.Shape{closed, open}, params)
+
+		// Assert
+		Expect(got).To(Equal([]copies.Copy{{Shape: 1, Of: 0}}))
+	})
 })
