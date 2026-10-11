@@ -2,7 +2,11 @@
 // design, change the document to fix it, and measure it again.
 package app
 
-import "github.com/kinglet-dev/core/domain/geom"
+import (
+	"math"
+
+	"github.com/kinglet-dev/core/domain/geom"
+)
 
 // Kind names a kind of change; the names are stable, for --json.
 type Kind string
@@ -32,3 +36,12 @@ type Report struct {
 	Before, After Measure
 	Output        []byte // the fixed document
 }
+
+// Worse reports whether the changes left more line burning twice, as
+// shown to 0.1 mm, or more crossings than before.
+func (r Report) Worse() bool {
+	return shown(r.After.Stacked) > shown(r.Before.Stacked) || r.After.Crossings > r.Before.Crossings
+}
+
+// shown is a length as reports show it, to 0.1 mm.
+func shown(mm float64) float64 { return math.Round(10*mm) / 10 }
