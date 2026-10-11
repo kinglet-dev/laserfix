@@ -17,7 +17,7 @@ import (
 // Exit codes shared by every Kinglet tool.
 const (
 	ExitClean   = 0 // nothing left to fix
-	ExitChanges = 1 // changes are needed (preview), or the changes made things worse
+	ExitChanges = 1 // changes are needed (preview), something was left as it is, or the changes made things worse
 	ExitError   = 2 // the file couldn't be read or written
 )
 
@@ -65,7 +65,7 @@ func Run(args []string, d Deps) int {
 		fmt.Fprintf(d.Stderr, "laserfix: %v\n", err)
 		return ExitError
 	}
-	if (o.output == "" && len(r.Changes) > 0) || r.Worse() {
+	if (o.output == "" && len(r.Changes) > 0) || len(r.Findings) > 0 || r.Worse() {
 		return ExitChanges
 	}
 	return ExitClean
