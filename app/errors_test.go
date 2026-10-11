@@ -10,6 +10,7 @@ import (
 	"github.com/kinglet-dev/core/domain/crossing"
 	"github.com/kinglet-dev/laserfix/adapters/svg"
 	"github.com/kinglet-dev/laserfix/app"
+	"github.com/kinglet-dev/laserfix/domain/overlap"
 )
 
 // editor is a test double for the Editor port that returns what it is given.
@@ -81,5 +82,18 @@ var _ = Describe("Fix stops with an error", func() {
 
 		// Assert
 		Expect(err).To(MatchError(crossing.ErrTooComplex))
+	})
+
+	It("when the design has too much line to search for shared line", func() {
+		// Arrange
+		fixer := app.NewFixer(svg.Document{}, svg.Document{})
+		s := app.DefaultSettings
+		s.MaxShared = 5
+
+		// Act
+		_, err := fixer.Fix(doc(sq("10")), s)
+
+		// Assert
+		Expect(err).To(MatchError(overlap.ErrTooComplex))
 	})
 })

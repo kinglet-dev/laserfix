@@ -7,7 +7,6 @@ import (
 	"github.com/kinglet-dev/core/domain/crossing"
 	"github.com/kinglet-dev/core/domain/design"
 	"github.com/kinglet-dev/core/domain/geom"
-	"github.com/kinglet-dev/laserfix/domain/copies"
 )
 
 // flatten is how closely lines follow curves, mm: far below the width of
@@ -35,6 +34,7 @@ type Editor interface {
 type Settings struct {
 	Same      float64         // lines nearer than this are the same line, mm
 	Crossings crossing.Params // how line burned twice is measured
+	MaxShared int             // limit on the search for shared line, so huge designs fail clearly
 }
 
 // DefaultSettings are laserfix's defaults; the measurements match
@@ -42,6 +42,7 @@ type Settings struct {
 var DefaultSettings = Settings{
 	Same:      0.02,
 	Crossings: crossing.Params{Merge: 0.1, Cell: 1, MaxSegments: 5_000_000, MaxEntries: 10_000_000},
+	MaxShared: 10_000_000,
 }
 
 // Fixer fixes documents through its ports, given at construction.
@@ -64,10 +65,9 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 	if r.Before, err = measure(d, s); err != nil {
 		return Report{}, err
 	}
-	var edits []Edit
-	for _, c := range copies.Find(d.Shapes, copies.Params{Same: s.Same, Flatten: flatten}) {
-		r.Changes = append(r.Changes, copyChange(d.Shapes[c.Shape], d.Shapes[c.Of]))
-		edits = append(edits, Edit{Element: d.Shapes[c.Shape].Element})
+	edits, err := plan(d, s, &r)
+	if err != nil {
+		return Report{}, err
 	}
 	if r.Output, err = f.edit.Edit(src, edits); err != nil {
 		return Report{}, fmt.Errorf("changing the document: %w", err)
@@ -78,16 +78,6 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 	}
 	r.After, err = measure(after, s)
 	return r, err
-}
-
-// copyChange describes removing shape, a copy of of.
-func copyChange(shape, of design.Shape) Change {
-	lines := design.Design{Shapes: []design.Shape{shape}}.ScoredLines(flatten)
-	c := Change{Kind: Copy, Element: shape.Element, Of: of.Element, At: lines[0].Points[0]}
-	for _, l := range lines {
-		c.Length += length(l)
-	}
-	return c
 }
 
 // length is a line's length, mm, with the closing side of a closed line.

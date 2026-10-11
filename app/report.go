@@ -11,14 +11,17 @@ import (
 // Kind names a kind of change; the names are stable, for --json.
 type Kind string
 
-// Copy is the removal of a shape that copies an earlier one.
-const Copy Kind = "copy"
+// The kinds of change.
+const (
+	Copy Kind = "copy" // a shape that copies an earlier one is removed
+	Trim Kind = "trim" // line lying on earlier line is cut from the later shape
+)
 
 // Change is one change made, or that would be made, to the document.
 type Change struct {
 	Kind    Kind
 	Element int        // the element changed, numbered as the reader numbers them
-	Of      int        // for a copy: the element it copies, which stays
+	Of      int        // for a copy: the element it copies, which stays; otherwise 0
 	At      geom.Point // where the change is: the start of the shape's line, mm
 	Length  float64    // line no longer burned twice, mm
 }
