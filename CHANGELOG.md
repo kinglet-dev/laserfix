@@ -4,7 +4,7 @@ All notable changes to laserfix are listed here. It follows
 [Semantic Versioning](https://semver.org/): the command line, the exit codes
 and the JSON report (`kinglet.report/v1`) don't break within a major version.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-11)
 
 ### Added
 
