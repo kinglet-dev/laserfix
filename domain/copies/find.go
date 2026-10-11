@@ -17,7 +17,8 @@ type Copy struct {
 	Of    int // the earliest shape that stays and that it copies
 }
 
-// Find returns the shapes that copy an earlier shape, in order.
+// Find returns the shapes that copy an earlier shape, in order. A shape
+// that draws no line copies nothing.
 func Find(shapes []design.Shape, p Params) []Copy {
 	lines := make([][]segment, len(shapes))
 	for i, s := range shapes {
@@ -26,6 +27,9 @@ func Find(shapes []design.Shape, p Params) []Copy {
 	var out []Copy
 	removed := make([]bool, len(shapes))
 	for j := range shapes {
+		if len(lines[j]) == 0 {
+			continue // it draws no line, so nothing burns twice
+		}
 		for i := range j {
 			if !removed[i] && samePaint(shapes[i], shapes[j]) && covers(lines[i], lines[j], p.Same) && covers(lines[j], lines[i], p.Same) {
 				out = append(out, Copy{Shape: j, Of: i})

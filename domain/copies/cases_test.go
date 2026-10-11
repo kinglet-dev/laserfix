@@ -133,4 +133,15 @@ var _ = Describe("Find compares whole lines within the same-line distance", func
 		// Assert
 		Expect(got).To(Equal([]copies.Copy{{Shape: 1, Of: 0}}))
 	})
+
+	It("ignores shapes that draw no line, such as an empty path", func() {
+		// Arrange
+		empty := design.Shape{Fill: "none", Stroke: "#000000"}
+
+		// Act
+		got := copies.Find([]design.Shape{empty, empty}, params)
+
+		// Assert
+		Expect(got).To(BeEmpty())
+	})
 })
