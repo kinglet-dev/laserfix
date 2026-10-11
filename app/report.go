@@ -32,6 +32,7 @@ type Measure struct {
 // Report is the outcome of fixing one document.
 type Report struct {
 	Width, Height float64 // mm
+	Settings      Settings
 	Changes       []Change
 	Before, After Measure
 	Output        []byte // the fixed document

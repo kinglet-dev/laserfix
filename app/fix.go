@@ -54,7 +54,7 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	r := Report{Width: d.Width, Height: d.Height}
+	r := Report{Width: d.Width, Height: d.Height, Settings: s}
 	if r.Before, err = measure(d, s); err != nil {
 		return Report{}, err
 	}

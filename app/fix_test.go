@@ -82,4 +82,17 @@ var _ = Describe("Fix removes shapes that copy an earlier shape", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect([]float64{r.Width, r.Height}).To(Equal([]float64{100, 100}))
 	})
+
+	It("reports the settings it used", func() {
+		// Arrange
+		s := app.DefaultSettings
+		s.Same = 0.05
+
+		// Act
+		r, err := fixer.Fix(doc(""), s)
+
+		// Assert
+		Expect(err).NotTo(HaveOccurred())
+		Expect(r.Settings).To(Equal(s))
+	})
 })
