@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/kinglet-dev/core/domain/geom"
 	"github.com/kinglet-dev/laserfix/adapters/report"
 	"github.com/kinglet-dev/laserfix/adapters/report/text"
 	"github.com/kinglet-dev/laserfix/app"
@@ -42,6 +43,23 @@ Would change
            at (10.0, 10.0), (40.0, 10.0)
 
 Run again with -o FILE to write the repaired copy.
+`))
+	})
+
+	It("lists each kind of change on its own line, in the order they first appear", func() {
+		// Arrange
+		trim := app.Change{Kind: app.Trim, Element: 3, At: geom.Point{X: 20, Y: 20}, Length: 10}
+		r.Changes = []app.Change{copyAt(10, 10), trim}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, r)
+
+		// Assert
+		Expect(got).To(ContainSubstring(`
+  Copies   1 shape, 40.0 mm of line burned twice → remove the later copy
+           at (10.0, 10.0)
+  Shared   1 shape, 10.0 mm of line burned twice → trim it from the later shape
+           at (20.0, 20.0)
 `))
 	})
 

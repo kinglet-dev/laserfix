@@ -50,7 +50,7 @@ type settings struct {
 type change struct {
 	Kind    string  `json:"kind"`
 	Element int     `json:"element"`
-	Of      int     `json:"of"`
+	Of      *int    `json:"of,omitempty"` // only for a copy
 	X       float64 `json:"x_mm"`
 	Y       float64 `json:"y_mm"`
 	Length  float64 `json:"length_mm"`
@@ -93,8 +93,11 @@ func (Format) Write(w io.Writer, a report.About, r app.Report) error {
 		d.Output = &output{Name: a.Output}
 	}
 	for _, c := range r.Changes {
-		d.Changes = append(d.Changes, change{Kind: string(c.Kind), Element: c.Element, Of: c.Of,
-			X: mm(c.At.X), Y: mm(c.At.Y), Length: mm(c.Length)})
+		out := change{Kind: string(c.Kind), Element: c.Element, X: mm(c.At.X), Y: mm(c.At.Y), Length: mm(c.Length)}
+		if c.Kind == app.Copy {
+			out.Of = &c.Of
+		}
+		d.Changes = append(d.Changes, out)
 	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")

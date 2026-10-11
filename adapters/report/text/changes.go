@@ -19,6 +19,7 @@ type kind struct {
 // kinds words each kind of change; a new kind adds an entry here.
 var kinds = map[app.Kind]kind{
 	app.Copy: {label: "Copies", one: "shape", many: "shapes", would: "remove the later copy", done: "removed"},
+	app.Trim: {label: "Shared", one: "shape", many: "shapes", would: "trim it from the later shape", done: "trimmed"},
 }
 
 // changes lists the changes, one line per kind, in the order kinds first

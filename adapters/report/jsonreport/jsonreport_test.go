@@ -65,6 +65,21 @@ var _ = Describe("The JSON report", func() {
     "written": false,`))
 	})
 
+	It("leaves out which element a trim copies, since it copies none", func() {
+		// Arrange
+		var b strings.Builder
+		r.Changes = []app.Change{{Kind: app.Trim, Element: 2, At: geom.Point{X: 20, Y: 20}, Length: 10}}
+
+		// Act
+		Expect(jsonreport.New().Write(&b, report.About{}, r)).To(Succeed())
+
+		// Assert
+		Expect(b.String()).To(ContainSubstring(`{
+      "kind": "trim",
+      "element": 2,
+      "x_mm": 20,`))
+	})
+
 	It("says when the changes made the design worse", func() {
 		// Arrange
 		var b strings.Builder
