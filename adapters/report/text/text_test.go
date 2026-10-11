@@ -1,0 +1,148 @@
+package text_test
+
+import (
+	"errors"
+	"strings"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/kinglet-dev/laserfix/adapters/report"
+	"github.com/kinglet-dev/laserfix/adapters/report/text"
+	"github.com/kinglet-dev/laserfix/app"
+)
+
+// write formats a report and returns the text.
+func write(a report.About, r app.Report) string {
+	var b strings.Builder
+	Expect(text.New().Write(&b, a, r)).To(Succeed())
+	return b.String()
+}
+
+var _ = Describe("The text report", func() {
+	var r app.Report
+
+	BeforeEach(func() {
+		// Arrange (shared)
+		r = app.Report{Width: 100, Height: 80, Before: app.Measure{Stacked: 80, Crossings: 1}, After: app.Measure{Crossings: 1}}
+	})
+
+	It("shows what would change in a preview", func() {
+		// Arrange
+		r.Changes = []app.Change{copyAt(10, 10), copyAt(40, 10.04)}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, r)
+
+		// Assert
+		Expect(got).To(Equal(`laserfix 0.1.0 · grid.svg · 100.0 × 80.0 mm
+
+Would change
+  Copies   2 shapes, 80.0 mm of line burned twice → remove the later copy
+           at (10.0, 10.0), (40.0, 10.0)
+
+Run again with -o FILE to write the repaired copy.
+`))
+	})
+
+	It("says when there is nothing to fix", func() {
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, app.Report{Width: 100, Height: 80})
+
+		// Assert
+		Expect(got).To(Equal("laserfix 0.1.0 · grid.svg · 100.0 × 80.0 mm\n\nNothing to fix.\n"))
+	})
+
+	It("shows what changed and measures the copy again when writing", func() {
+		// Arrange
+		r.Changes = []app.Change{copyAt(10, 10)}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg", Output: "fixed.svg"}, r)
+
+		// Assert
+		Expect(got).To(Equal(`laserfix 0.1.0 · grid.svg → fixed.svg · 100.0 × 80.0 mm
+
+Changed
+  Copies   1 shape removed, 40.0 mm of line burned twice
+           at (10.0, 10.0)
+
+Checked again
+  Line burned twice   80.0 mm → 0.0 mm
+  Crossings           1 → 1
+
+Wrote fixed.svg. Check it with: laserlint fixed.svg
+`))
+	})
+
+	It("says when the copy was written unchanged", func() {
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg", Output: "fixed.svg"}, app.Report{Width: 100, Height: 80})
+
+		// Assert
+		Expect(got).To(HaveSuffix("Nothing to fix.\n\nWrote fixed.svg, unchanged.\n"))
+	})
+
+	It("doesn't suggest checking standard output with laserlint by name", func() {
+		// Arrange
+		r.Changes = []app.Change{copyAt(10, 10)}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "standard input", Output: "standard output"}, r)
+
+		// Assert
+		Expect(got).To(HaveSuffix("\nWrote the repaired SVG to standard output.\n"))
+	})
+
+	It("lists at most five places, then how many more", func() {
+		// Arrange
+		for i := range 7 {
+			r.Changes = append(r.Changes, copyAt(float64(i), 0))
+		}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, r)
+
+		// Assert
+		Expect(got).To(ContainSubstring("at (0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 0.0), (4.0, 0.0) and 2 more\n"))
+	})
+
+	It("lists exactly five places without saying more", func() {
+		// Arrange
+		for i := range 5 {
+			r.Changes = append(r.Changes, copyAt(float64(i), 0))
+		}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, r)
+
+		// Assert
+		Expect(got).To(ContainSubstring("(4.0, 0.0)\n"))
+	})
+
+	It("warns when the changes made the design worse", func() {
+		// Arrange
+		r.Changes = []app.Change{copyAt(10, 10)}
+		r.After = app.Measure{Stacked: 90, Crossings: 1}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "grid.svg", Output: "fixed.svg"}, r)
+
+		// Assert
+		Expect(got).To(ContainSubstring("\nWorse after the changes: check fixed.svg before you burn it, and please report this at https://github.com/kinglet-dev/laserfix/issues\n"))
+	})
+
+	It("passes on an error writing the report", func() {
+		// Act
+		err := text.New().Write(failingWriter{}, report.About{}, r)
+
+		// Assert
+		Expect(err).To(MatchError(errBroken))
+	})
+})
+
+var errBroken = errors.New("broken pipe")
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errBroken }
