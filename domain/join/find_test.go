@@ -181,6 +181,14 @@ var _ = Describe("Find reports what it won't join", func() {
 		Expect(r.Gaps).To(BeEmpty())
 	})
 
+	It("reports a square left open at a corner", func() {
+		// Act
+		r := join.Find([]design.Shape{line(pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10), pt(0, 0.1))}, nil, params)
+
+		// Assert
+		Expect(r.Gaps).To(HaveLen(1))
+	})
+
 	It("doesn't report the ends of parallel lines as a gap, since neither points at the other", func() {
 		// Act
 		r := join.Find([]design.Shape{line(pt(10, 25), pt(110, 25)), line(pt(10, 25.3), pt(110, 25.3))}, nil, params)
@@ -222,7 +230,7 @@ var _ = Describe("Find reports what it won't join", func() {
 		Expect(r.Gaps).To(HaveLen(1))
 	})
 
-	DescribeTable("doesn't report a line ending beside the end of a line running across it",
+	DescribeTable("reports a corner left open, where only one end points at the other",
 		func(across, along design.Shape, acrossFirst bool) {
 			// Arrange
 			shapes := []design.Shape{along, across}
@@ -234,7 +242,7 @@ var _ = Describe("Find reports what it won't join", func() {
 			r := join.Find(shapes, nil, params)
 
 			// Assert
-			Expect(r.Gaps).To(BeEmpty())
+			Expect(r.Gaps).To(HaveLen(1))
 		},
 		Entry("listed second", line(pt(10.5, -5), pt(10.5, 0)), line(pt(0, 0), pt(10, 0)), false),
 		Entry("listed first", line(pt(10.5, -5), pt(10.5, 0)), line(pt(0, 0), pt(10, 0)), true),

@@ -83,8 +83,8 @@ func outward(s geom.Subpath) geom.Point {
 }
 
 // facing reports whether the line runs out of end e toward point p,
-// within 45°: two ends a gap apart that face each other look like one
-// line broken, not two lines that end near each other.
+// within 45°. A gap is where at least one end points at the other: a line
+// broken in two, or a corner left open. The ends of parallel lines don't.
 func facing(e end, p geom.Point) bool {
 	vx, vy := p.X-e.at.X, p.Y-e.at.Y
 	return e.out.X*vx+e.out.Y*vy >= math.Sqrt2/2*math.Hypot(e.out.X, e.out.Y)*math.Hypot(vx, vy)

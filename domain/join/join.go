@@ -4,7 +4,7 @@
 // hairlines of the same stroke are joined. Ends are paired only when each
 // is the other's one end within Join; where three or more ends meet, it is
 // unclear which to join, so they are reported instead, as are gaps wider
-// than Join and up to ReportGaps.
+// than Join and up to ReportGaps where an end points at the other.
 package join
 
 import "github.com/kinglet-dev/core/domain/geom"
