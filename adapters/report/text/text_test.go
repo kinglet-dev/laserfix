@@ -63,6 +63,47 @@ Run again with -o FILE to write the repaired copy.
 `))
 	})
 
+	It("counts outlines and pieces for joins", func() {
+		// Arrange
+		r.Changes = []app.Change{
+			{Kind: app.Join, At: geom.Point{X: 1, Y: 2}, Pieces: 4},
+			{Kind: app.Join, At: geom.Point{X: 3, Y: 4}, Pieces: 8},
+		}
+
+		// Act
+		preview := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+		written := write(report.About{Version: "0.1.0", Input: "a.svg", Output: "b.svg"}, r)
+
+		// Assert
+		Expect(preview).To(ContainSubstring("\n  Split    2 outlines in 12 pieces → join each into one path\n           at (1.0, 2.0), (3.0, 4.0)\n"))
+		Expect(written).To(ContainSubstring("\n  Split    2 outlines joined from 12 pieces\n"))
+	})
+
+	It("lists what it leaves as it is, with a fix for each", func() {
+		// Arrange
+		r.Settings = app.DefaultSettings
+		r.Findings = []app.Finding{
+			{Kind: app.Junction, Locations: []geom.Point{{X: 50, Y: 50}}},
+			{Kind: app.Gap, Locations: []geom.Point{{X: 1, Y: 1}, {X: 2, Y: 2}}, Size: 0.6},
+			{Kind: app.Stacked, Locations: []geom.Point{{X: 5, Y: 5}}, Size: 40},
+		}
+
+		// Act
+		got := write(report.About{Version: "0.1.0", Input: "a.svg"}, r)
+
+		// Assert
+		Expect(got).To(HaveSuffix(`Nothing to fix.
+
+Left as they are
+  Junction 1 place where three or more ends meet, so which to join is unclear → join them by hand
+           at (50.0, 50.0)
+  Gap      2 gaps up to 0.6 mm, wider than 0.05 mm (--join) → close them by hand, or raise --join
+           at (1.0, 1.0), (2.0, 2.0)
+  Overlap  40.0 mm of line still burns twice, shared by different colors or filled shapes → combine them by hand if they should burn once
+           at (5.0, 5.0)
+`))
+	})
+
 	It("says when there is nothing to fix", func() {
 		// Act
 		got := write(report.About{Version: "0.1.0", Input: "grid.svg"}, app.Report{Width: 100, Height: 80})
