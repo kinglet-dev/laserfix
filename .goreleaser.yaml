@@ -1,0 +1,46 @@
+# Builds laserfix's release: binaries for Windows, macOS and Linux, with
+# SHA-256 checksums and an SBOM (software bill of materials) per archive.
+# Run by .github/workflows/release.yml when a version tag (v1.2.3) is pushed.
+version: 2
+
+project_name: laserfix
+
+builds:
+  - main: ./cmd/laserfix
+    binary: laserfix
+    env:
+      - CGO_ENABLED=0
+    goos: [windows, darwin, linux]
+    goarch: [amd64, arm64]
+    # Reproducible: no local paths, no build IDs, timestamps from the commit.
+    flags: [-trimpath]
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: # dated to the commit, so archives are the same wherever they're built
+      - src: LICENSE
+        info: { mtime: "{{ .CommitDate }}" }
+      - src: README.md
+        info: { mtime: "{{ .CommitDate }}" }
+      - src: TRADEMARKS.md
+        info: { mtime: "{{ .CommitDate }}" }
+      - src: CHANGELOG.md
+        info: { mtime: "{{ .CommitDate }}" }
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+sboms:
+  - artifacts: archive
+
+# Release notes come from CHANGELOG.md, passed with --release-notes. Don't
+# set changelog.disable: it also stops GoReleaser loading that file.
+release:
+  draft: true # published by hand after a last look
