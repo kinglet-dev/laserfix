@@ -15,7 +15,7 @@
 
 # laserfix
 
-**Repairs an SVG so your laser burns each line once:** it removes shapes pasted twice, trims line that two shapes share from the later one, and joins outlines stored as separate pieces. Whatever it can't fix safely, it reports.
+**Repairs an SVG so your laser burns each line once:** it removes shapes pasted twice, trims line that two shapes share from the later one, and joins outlines stored as separate pieces. Whatever it can't fix safely, it reports. One run is enough: it repeats its fixes until nothing changes.
 
 It never changes the file you give it. It shows what it would change first, and after writing a repaired copy it measures it again to show the fix worked. It's the "fix" step after [laserlint](https://github.com/kinglet-dev/laserlint)'s "check".
 
@@ -58,7 +58,7 @@ Wrote stacked-fixed.svg. Check it with: laserlint stacked-fixed.svg
 Only hairlines (stroke, no fill) of the same stroke color are changed, because laser software chooses its settings by color, and cutting into a filled shape's outline would break its fill.
 
 - **Copies:** a shape with the same fill and stroke as an earlier shape, whose line lies within 0.02 mm (`--same`) of it everywhere, wherever it starts and whichever way it runs, is removed. This covers shapes pasted in place, a square drawn from another corner or the other way round, and a `<circle>` against the same circle drawn as a path. Filled copies are removed too.
-- **Shared line:** where a shape's line lies on an earlier shape's line (within `--same`, running alongside it), that stretch is trimmed from the later shape; the earlier one stays whole. Neighboring parts in a grid, nested shapes and finger joints laid out edge to edge are cut once. Lines that only cross, or meet at a corner, are left alone. Curves stay curves: they are cut exactly where the shared stretch starts and ends.
+- **Shared line:** where a shape's line lies on earlier line (within `--same`, running alongside it), that stretch is trimmed from the later line; the earlier one stays whole. Earlier line can be another shape's, or the shape's own, as in a path that runs back along itself. Neighboring parts in a grid, nested shapes and finger joints laid out edge to edge are cut once. Lines that only cross, or meet at a corner, are left alone. Curves stay curves: they are cut exactly where the shared stretch starts and ends.
 - **Split outlines:** pieces whose ends meet within 0.05 mm (`--join`, [LightBurn's Auto-Join distance](https://docs.lightburnsoftware.com/2.1/Collections/GettingADesignLaserReady/)) are joined into one path, and closed when the chain comes back to its start. An outline left open by a gap that small is closed.
 - **Kept as they were:** every other element and byte of the file: ids, styles, groups, layers, transforms and comments. A trimmed or joined `<rect>`, `<circle>` or other shape becomes a `<path>` with its other attributes unchanged, in its own units.
 

@@ -175,4 +175,28 @@ var _ = Describe("Find leaves alone what it mustn't change", func() {
 		// Assert
 		Expect(err).To(MatchError(overlap.ErrTooComplex))
 	})
+
+	It("stops when the line kept from several shapes goes over the limit", func() {
+		// Arrange: each line passes through 3 grid cells, within the limit on its own.
+		p := params
+		p.MaxEntries = 5
+
+		// Act
+		_, err := overlap.Find([]design.Shape{line(pt(0.5, 0.5), pt(2.5, 0.5)), line(pt(0.5, 5.5), pt(2.5, 5.5))}, nil, p)
+
+		// Assert
+		Expect(err).To(MatchError(overlap.ErrTooComplex))
+	})
+
+	It("stops when one shape's own line goes over the limit, even if trimming would shorten it", func() {
+		// Arrange: out through 3 grid cells and back beside the way out.
+		p := params
+		p.MaxEntries = 5
+
+		// Act
+		_, err := overlap.Find([]design.Shape{line(pt(0.5, 0.5), pt(2.5, 0.5), pt(0.5, 0.51))}, nil, p)
+
+		// Assert
+		Expect(err).To(MatchError(overlap.ErrTooComplex))
+	})
 })

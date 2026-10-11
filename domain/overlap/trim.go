@@ -6,17 +6,25 @@ import "github.com/kinglet-dev/core/domain/design"
 // line to be cut: shorter ones are where lines meet at a shallow angle.
 const minRun = 5
 
-// trim works out what is left of a shape, in its own units, and whether
-// anything was cut.
-func (f *finder) trim(s design.Shape) (Trim, bool) {
+// trim works out what is left of a shape, in its own units, whether
+// anything was cut, and false when the search went over its limit. Each
+// piece is compared with kept line of earlier shapes and with the pieces
+// of this shape that come before it: a path that runs back along itself
+// burns that stretch twice too.
+func (f *finder) trim(s design.Shape, cell float64) (Trim, bool, bool) {
 	var t Trim
 	changed := false
+	f.own = newIndex(cell, f.p.MaxEntries)
 	for si, sub := range s.Local.Subpaths {
 		ps := pieces(sub)
 		for i := range ps {
 			ps[i] = ps[i].transform(s.ToMM)
 		}
-		iv := f.tidy(f.intervals(ps), sub.Closed)
+		raw, ok := f.intervals(ps)
+		if !ok {
+			return t, false, false
+		}
+		iv := f.tidy(raw, sub.Closed)
 		if !anyOn(iv) {
 			t.Keep = append(t.Keep, Stretch{Sub: si, Whole: true})
 			continue
@@ -33,7 +41,7 @@ func (f *finder) trim(s design.Shape) (Trim, bool) {
 			}
 		}
 	}
-	return t, changed
+	return t, changed, true
 }
 
 // tidy joins a closed subpath's last stretch to its first when both are in

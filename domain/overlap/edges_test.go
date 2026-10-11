@@ -93,4 +93,46 @@ var _ = Describe("Find draws the edges of each trim precisely", func() {
 		// Assert
 		Expect(lines(kept(shapes, trims, 1))).To(approx([][]geom.Point{{pt(7, 0), pt(10, 0), pt(10, 10), pt(0, 10), pt(0, 0), pt(3, 0)}}))
 	})
+
+	It("trims line exactly the same-line distance away in one piece, whatever rounding does", func() {
+		// Arrange: the later square's right side runs 0.02 mm from the earlier square's left side.
+		later := shape(poly(true, pt(20.02, 29.99), pt(30.02, 29.99), pt(30.02, 39.99), pt(20.02, 39.99)))
+		shapes := []design.Shape{square(30, 30), later}
+
+		// Act
+		trims := find(shapes, nil)
+
+		// Assert
+		Expect(trims).To(HaveLen(1))
+		Expect(trims[0].Keep).To(HaveLen(1))
+		// The 9.99 mm they share, plus at most a leftover shorter than the
+		// same-line distance at each end.
+		Expect(trims[0].Removed).To(And(BeNumerically(">=", 9.99-1e-6), BeNumerically("<", 9.99+2*0.02)))
+	})
+
+	It("trims a line that runs back along itself", func() {
+		// Arrange: out 10 mm and back 0.01 mm beside the way out.
+		shapes := []design.Shape{line(pt(0, 0), pt(10, 0), pt(0, 0.01))}
+
+		// Act
+		trims := find(shapes, nil)
+
+		// Assert
+		Expect(trims).To(HaveLen(1))
+		Expect(lines(kept(shapes, trims, 0))).To(approx([][]geom.Point{{pt(0, 0), pt(10, 0)}}))
+	})
+
+	It("trims a later outline of one shape lying on an earlier one", func() {
+		// Arrange: one path holding the same square twice.
+		twice := square(0, 0)
+		twice.Local.Subpaths = append(twice.Local.Subpaths, square(0, 0).Local.Subpaths[0])
+		twice.Path = twice.Local
+		shapes := []design.Shape{twice}
+
+		// Act
+		trims := find(shapes, nil)
+
+		// Assert
+		Expect(lines(kept(shapes, trims, 0))).To(approx([][]geom.Point{{pt(0, 0), pt(10, 0), pt(10, 10), pt(0, 10), pt(0, 0)}}))
+	})
 })

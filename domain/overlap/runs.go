@@ -17,8 +17,10 @@ type interval struct {
 }
 
 // intervals splits a subpath's pieces (in mm) into stretches that lie on
-// kept line and stretches that don't, in order.
-func (f *finder) intervals(ps []piece) []interval {
+// kept line and stretches that don't, in order, adding each piece to the
+// shape's own line once it has been looked at. It reports false when that
+// goes over the search's limit.
+func (f *finder) intervals(ps []piece) ([]interval, bool) {
 	var out []interval
 	for i, pc := range ps {
 		n := max(1, int(math.Ceil(f.arc(pc, 0, 1)/(f.p.Same/2))))
@@ -34,13 +36,29 @@ func (f *finder) intervals(ps []piece) []interval {
 			prev = t
 		}
 		out = appendInterval(out, f.interval(ps, i, t0, 1, on))
+		if !f.addOwn(pc) {
+			return nil, false
+		}
 	}
-	return out
+	return out, true
 }
 
-// on reports whether a piece lies on kept line at t.
+// addOwn adds a piece, flattened, to the shape's own line.
+func (f *finder) addOwn(pc piece) bool {
+	l := (geom.Path{Subpaths: []geom.Subpath{{Start: pc.p0, Segments: []geom.Segment{pc.s}}}}).Flatten(f.p.Flatten)[0]
+	for j := 1; j < len(l.Points); j++ {
+		if !f.own.add(l.Points[j-1], l.Points[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+// on reports whether a piece lies on kept line, or on its own shape's
+// earlier line, at t.
 func (f *finder) on(pc piece, t float64) bool {
-	return f.kept.beside(pc.at(t), pc.direction(t), f.p.Same)
+	p, dir := pc.at(t), pc.direction(t)
+	return f.kept.beside(p, dir, f.p.Same) || f.own.beside(p, dir, f.p.Same)
 }
 
 // edge finds, by bisection, where the piece stops being in state on

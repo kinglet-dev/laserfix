@@ -10,10 +10,12 @@ import (
 // ErrTooComplex means the design has too much line to search within the limits.
 var ErrTooComplex = errors.New("the design has too much line to check for shared line")
 
-// finder holds the line kept so far for one paint.
+// finder holds the line kept so far for one paint, and the line of the
+// shape being trimmed that comes before the piece being looked at.
 type finder struct {
 	p    Params
 	kept *index
+	own  *index
 }
 
 // Find returns the trims for the shapes, in order. Shapes marked in gone
@@ -32,7 +34,10 @@ func Find(shapes []design.Shape, gone []bool, p Params) ([]Trim, error) {
 			f = &finder{p: p, kept: newIndex(cell, p.MaxEntries)}
 			byStroke[s.Stroke] = f
 		}
-		t, changed := f.trim(s)
+		t, changed, ok := f.trim(s, cell)
+		if !ok {
+			return nil, ErrTooComplex
+		}
 		if changed {
 			t.Shape = i
 			out = append(out, t)

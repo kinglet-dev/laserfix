@@ -14,9 +14,11 @@ and the JSON report (`kinglet.report/v1`) don't break within a major version.
 - Shows what would change by default; `-o FILE` writes a repaired copy to
   a new file and never replaces one; `-` and `-o -` read standard input and
   write standard output.
-- Trims line lying on an earlier shape's line (same stroke, within
-  `--same`, running alongside it) from the later shape; the earlier one
-  stays whole and curves stay curves.
+- Trims line lying on earlier line (same stroke, within `--same`,
+  running alongside it), another shape's or the shape's own, from the
+  later line; the earlier one stays whole and curves stay curves.
+- Repeats its fixes until a pass changes nothing (up to five passes), so
+  one run fixes everything it can.
 - Joins open pieces whose ends meet within `--join` (0.05 mm by default)
   into one path, closing it when the chain comes back to its start.
 - Reports what it leaves as it is: junctions of three or more ends, gaps
