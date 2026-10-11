@@ -18,6 +18,8 @@ func FuzzFix(f *testing.F) {
 	f.Add(string(doc(sq("10") + sq("20") + hair("M20 20 V30") + hair("M0 0 H10 M50 0 H60") + hair("M10 0 V10"))))
 	f.Add(string(doc(hair("M10 10 H20 V20 H10 V10.02") + hair("M10 50 H50") + hair("M50 50 H90") + hair("M50 50 V90"))))
 	f.Add(string(doc(`<circle cx="50" cy="50" r="20" fill="none" stroke="#000"/><path d="M70 50 A20 20 0 0 1 30 50" fill="none" stroke="#000"/>`)))
+	f.Add(string(doc(needsTwoPasses)))
+	f.Add(string(doc(`<rect x="30" y="30" width="10" height="10" fill="none" stroke="#000"/><rect x="20.02" y="29.99" width="10" height="10" fill="none" stroke="#000"/>`)))
 	f.Add("<html/>")
 	fixer := app.NewFixer(svg.Document{}, svg.Document{})
 	f.Fuzz(func(t *testing.T, src string) {
