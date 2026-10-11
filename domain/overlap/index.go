@@ -10,6 +10,11 @@ import (
 // the same way: wide enough for curves flattened at different points.
 const maxSin = 0.342
 
+// margin widens both limits by far more than rounding error (a nanometer,
+// and a billionth of the sine), so line exactly at a limit is decided the
+// same way all along it, rather than in fragments as rounding wavers.
+const margin = 1e-9
+
 // seg is a straight piece of line already kept.
 type seg struct{ a, b geom.Point }
 
@@ -97,11 +102,11 @@ func alongside(p, dir geom.Point, s seg, same float64) bool {
 	if u < 0 || u > 1 {
 		return false
 	}
-	if math.Hypot(p.X-(s.a.X+u*vx), p.Y-(s.a.Y+u*vy)) > same {
+	if math.Hypot(p.X-(s.a.X+u*vx), p.Y-(s.a.Y+u*vy)) > same+margin {
 		return false
 	}
 	cross := math.Abs(dir.X*vy - dir.Y*vx)
-	return cross <= maxSin*math.Hypot(dir.X, dir.Y)*math.Sqrt(l2)
+	return cross <= (maxSin+margin)*math.Hypot(dir.X, dir.Y)*math.Sqrt(l2)
 }
 
 func abs(v int) int { return max(v, -v) }
