@@ -8,7 +8,9 @@ import (
 
 	"github.com/kinglet-dev/core/adapters/svg/edit"
 	"github.com/kinglet-dev/core/adapters/svg/reader"
+	"github.com/kinglet-dev/core/adapters/svg/syntax"
 	"github.com/kinglet-dev/core/domain/design"
+	"github.com/kinglet-dev/laserfix/app"
 )
 
 // Document reads and edits whole SVG documents held in memory.
@@ -19,12 +21,14 @@ func (Document) Read(src []byte) (design.Design, error) {
 	return reader.Read(bytes.NewReader(src))
 }
 
-// Remove returns the document without the given elements, numbered as the
-// reader numbers them. Every other byte stays as it was.
-func (Document) Remove(src []byte, elements []int) ([]byte, error) {
-	changes := make([]edit.Change, len(elements))
-	for i, e := range elements {
-		changes[i] = edit.Change{Element: e}
+// Edit returns the document with each element removed, or redrawn as a
+// path in its own units. Every other byte stays as it was.
+func (Document) Edit(src []byte, edits []app.Edit) ([]byte, error) {
+	changes := make([]edit.Change, len(edits))
+	for i, e := range edits {
+		// An empty path writes no path data, and a change with neither
+		// path data nor markup removes the element.
+		changes[i] = edit.Change{Element: e.Element, Redraw: syntax.FormatPath(e.Path)}
 	}
 	return edit.Apply(src, changes)
 }

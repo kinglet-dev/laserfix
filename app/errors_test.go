@@ -12,18 +12,18 @@ import (
 	"github.com/kinglet-dev/laserfix/app"
 )
 
-// remover is a test double for the Remover port that returns what it is given.
-type remover struct {
+// editor is a test double for the Editor port that returns what it is given.
+type editor struct {
 	out []byte
 	err error
 }
 
-func (r remover) Remove([]byte, []int) ([]byte, error) { return r.out, r.err }
+func (e editor) Edit([]byte, []app.Edit) ([]byte, error) { return e.out, e.err }
 
 var _ = Describe("Fix stops with an error", func() {
 	It("when the document can't be read", func() {
-		// Arrange: a remover that fails shows nothing else was tried.
-		fixer := app.NewFixer(svg.Document{}, remover{err: errors.New("failed")})
+		// Arrange: an editor that fails shows nothing else was tried.
+		fixer := app.NewFixer(svg.Document{}, editor{err: errors.New("failed")})
 
 		// Act
 		_, err := fixer.Fix([]byte("<html/>"), app.DefaultSettings)
@@ -48,7 +48,7 @@ var _ = Describe("Fix stops with an error", func() {
 	It("when the document can't be changed", func() {
 		// Arrange
 		failed := errors.New("failed")
-		fixer := app.NewFixer(svg.Document{}, remover{err: failed})
+		fixer := app.NewFixer(svg.Document{}, editor{err: failed})
 
 		// Act
 		_, err := fixer.Fix(doc(sq("10")+sq("10")), app.DefaultSettings)
@@ -60,7 +60,7 @@ var _ = Describe("Fix stops with an error", func() {
 
 	It("when the changed document can't be read", func() {
 		// Arrange
-		fixer := app.NewFixer(svg.Document{}, remover{out: []byte("<html/>")})
+		fixer := app.NewFixer(svg.Document{}, editor{out: []byte("<html/>")})
 
 		// Act
 		_, err := fixer.Fix(doc(sq("10")), app.DefaultSettings)
@@ -71,8 +71,8 @@ var _ = Describe("Fix stops with an error", func() {
 	})
 
 	It("when the changed document has too much line to measure", func() {
-		// Arrange: a remover that, against its contract, adds line.
-		fixer := app.NewFixer(svg.Document{}, remover{out: doc(sq("10") + sq("40"))})
+		// Arrange: an editor that, against its contract, adds line.
+		fixer := app.NewFixer(svg.Document{}, editor{out: doc(sq("10") + sq("40"))})
 		s := app.DefaultSettings
 		s.Crossings.MaxSegments = 5
 

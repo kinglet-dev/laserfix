@@ -19,10 +19,16 @@ type Reader interface {
 	Read(src []byte) (design.Design, error)
 }
 
-// Remover removes elements from a document, numbered as the reader
-// numbers them (a port).
-type Remover interface {
-	Remove(src []byte, elements []int) ([]byte, error)
+// Edit is one change to a document: an element, numbered as the reader
+// numbers them, and its new path in its own units; an empty path removes it.
+type Edit struct {
+	Element int
+	Path    geom.Path
+}
+
+// Editor makes edits to a document (a port).
+type Editor interface {
+	Edit(src []byte, edits []Edit) ([]byte, error)
 }
 
 // Settings set what counts as a fault and how the design is measured.
@@ -40,12 +46,12 @@ var DefaultSettings = Settings{
 
 // Fixer fixes documents through its ports, given at construction.
 type Fixer struct {
-	read   Reader
-	remove Remover
+	read Reader
+	edit Editor
 }
 
 // NewFixer returns a fixer that reads and edits with the given ports.
-func NewFixer(r Reader, rm Remover) *Fixer { return &Fixer{read: r, remove: rm} }
+func NewFixer(r Reader, e Editor) *Fixer { return &Fixer{read: r, edit: e} }
 
 // Fix finds the changes, makes them in a copy of the document, and
 // measures the design before and after. src itself is never changed.
@@ -58,12 +64,12 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 	if r.Before, err = measure(d, s); err != nil {
 		return Report{}, err
 	}
-	var gone []int
+	var edits []Edit
 	for _, c := range copies.Find(d.Shapes, copies.Params{Same: s.Same, Flatten: flatten}) {
 		r.Changes = append(r.Changes, copyChange(d.Shapes[c.Shape], d.Shapes[c.Of]))
-		gone = append(gone, d.Shapes[c.Shape].Element)
+		edits = append(edits, Edit{Element: d.Shapes[c.Shape].Element})
 	}
-	if r.Output, err = f.remove.Remove(src, gone); err != nil {
+	if r.Output, err = f.edit.Edit(src, edits); err != nil {
 		return Report{}, fmt.Errorf("changing the document: %w", err)
 	}
 	after, err := f.read.Read(r.Output)
