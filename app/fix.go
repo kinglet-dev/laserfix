@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/kinglet-dev/core/domain/crossing"
@@ -65,22 +64,14 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	r := Report{Width: d.Width, Height: d.Height, Settings: s}
+	r := Report{Width: d.Width, Height: d.Height, Settings: s, Output: src}
 	if r.Before, err = measure(d, s); err != nil {
 		return Report{}, err
 	}
-	edits, err := plan(d, s, &r)
-	if err != nil {
+	if d, err = f.passes(d, s, &r); err != nil {
 		return Report{}, err
 	}
-	if r.Output, err = f.edit.Edit(src, edits); err != nil {
-		return Report{}, fmt.Errorf("changing the document: %w", err)
-	}
-	after, err := f.read.Read(r.Output)
-	if err != nil {
-		return Report{}, fmt.Errorf("reading the changed document: %w", err)
-	}
-	r.After, err = measure(after, s)
+	r.After, err = measure(d, s)
 	if shown(r.After.Stacked) > 0 {
 		r.Findings = append(r.Findings, Finding{Kind: Stacked, Locations: r.After.Stacks, Size: r.After.Stacked})
 	}

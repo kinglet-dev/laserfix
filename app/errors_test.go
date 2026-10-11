@@ -63,8 +63,8 @@ var _ = Describe("Fix stops with an error", func() {
 		// Arrange
 		fixer := app.NewFixer(svg.Document{}, editor{out: []byte("<html/>")})
 
-		// Act
-		_, err := fixer.Fix(doc(sq("10")), app.DefaultSettings)
+		// Act: the copy needs a change.
+		_, err := fixer.Fix(doc(sq("10")+sq("10")), app.DefaultSettings)
 
 		// Assert
 		Expect(err).To(MatchError(reader.ErrNotSVG))
@@ -72,13 +72,13 @@ var _ = Describe("Fix stops with an error", func() {
 	})
 
 	It("when the changed document has too much line to measure", func() {
-		// Arrange: an editor that, against its contract, adds line.
-		fixer := app.NewFixer(svg.Document{}, editor{out: doc(sq("10") + sq("40"))})
+		// Arrange: an editor that, against its contract, adds line to the one shape it keeps.
+		fixer := app.NewFixer(svg.Document{}, editor{out: doc(hair("M0 0 H10 V10 H0 Z M50 50 H60 V60 H50"))})
 		s := app.DefaultSettings
 		s.Crossings.MaxSegments = 5
 
-		// Act
-		_, err := fixer.Fix(doc(sq("10")), s)
+		// Act: the second line copies the first.
+		_, err := fixer.Fix(doc(hair("M0 0 H10")+hair("M0 0 H10")), s)
 
 		// Assert
 		Expect(err).To(MatchError(crossing.ErrTooComplex))
@@ -95,5 +95,16 @@ var _ = Describe("Fix stops with an error", func() {
 
 		// Assert
 		Expect(err).To(MatchError(overlap.ErrTooComplex))
+	})
+
+	It("when the changed document's shapes no longer match the ones kept", func() {
+		// Arrange: an editor that, against its contract, keeps both shapes.
+		fixer := app.NewFixer(svg.Document{}, editor{out: doc(sq("10") + sq("10"))})
+
+		// Act: the copy should go, leaving one shape.
+		_, err := fixer.Fix(doc(sq("10")+sq("10")), app.DefaultSettings)
+
+		// Assert
+		Expect(err).To(MatchError(HavePrefix("reading the changed document: its shapes no longer match")))
 	})
 })

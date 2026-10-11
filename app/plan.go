@@ -9,11 +9,11 @@ import (
 	"github.com/kinglet-dev/laserfix/domain/overlap"
 )
 
-// plan works out the changes, adds them to the report, and returns the
-// edits that make them, one per element: copies first, then line lying on
-// earlier line with the copies gone, then outlines split into pieces as
-// they are after trimming, so one run fixes everything it can.
-func plan(d design.Design, s Settings, r *Report) ([]Edit, error) {
+// plan works out one pass of changes, adds them to the report, and returns
+// the edits that make them, one per element, by shape: copies first, then
+// line lying on earlier line with the copies gone, then outlines split
+// into pieces as they are after trimming.
+func plan(d design.Design, s Settings, r *Report) (map[int]Edit, error) {
 	edits := map[int]Edit{} // by shape; a later edit of a shape replaces an earlier one
 	gone := make([]bool, len(d.Shapes))
 	for _, c := range copies.Find(d.Shapes, copies.Params{Same: s.Same, Flatten: flatten}) {
@@ -34,11 +34,7 @@ func plan(d design.Design, s Settings, r *Report) ([]Edit, error) {
 		edits[t.Shape] = Edit{Element: shape.Element, Path: shape.Local}
 	}
 	maps.Copy(edits, joins(trimmed, gone, s, r))
-	var out []Edit
-	for _, i := range slices.Sorted(maps.Keys(edits)) {
-		out = append(out, edits[i])
-	}
-	return out, nil
+	return edits, nil
 }
 
 // copyChange describes removing shape, a copy of of.
