@@ -44,7 +44,7 @@ var _ = Describe("The JSON report", func() {
 			"before": {"stacked_mm": 40, "crossings": 1},
 			"after": {"stacked_mm": 0, "crossings": 1},
 			"findings": [],
-			"summary": {"changes": 1, "written": true, "worse": false}
+			"summary": {"changes": 1, "findings": 0, "written": true, "worse": false}
 		}`))
 	})
 
@@ -62,6 +62,7 @@ var _ = Describe("The JSON report", func() {
 		Expect(b.String()).To(ContainSubstring(`"changes": []`))
 		Expect(b.String()).To(ContainSubstring(`"summary": {
     "changes": 0,
+    "findings": 0,
     "written": false,`))
 	})
 
@@ -78,6 +79,46 @@ var _ = Describe("The JSON report", func() {
       "kind": "trim",
       "element": 2,
       "x_mm": 20,`))
+	})
+
+	It("gives how many pieces each join joined", func() {
+		// Arrange
+		var b strings.Builder
+		r.Changes = []app.Change{{Kind: app.Join, Element: 1, Pieces: 4}}
+
+		// Act
+		Expect(jsonreport.New().Write(&b, report.About{}, r)).To(Succeed())
+
+		// Assert
+		Expect(b.String()).To(ContainSubstring(`"length_mm": 0,
+      "pieces": 4`))
+	})
+
+	It("lists what it leaves as it is, in laserlint's finding format", func() {
+		// Arrange
+		var b strings.Builder
+		r.Findings = []app.Finding{{Kind: app.Gap, Locations: []geom.Point{{X: 1, Y: 2.00004}}, Size: 0.6}}
+
+		// Act
+		Expect(jsonreport.New().Write(&b, report.About{}, r)).To(Succeed())
+
+		// Assert
+		Expect(b.String()).To(ContainSubstring(`"findings": [
+    {
+      "check": "gap",
+      "severity": "warning",
+      "message": "1 gap up to 0.6 mm, wider than 0.05 mm (--join)",
+      "fix": "close them by hand, or raise --join",
+      "size_mm": 0.6,
+      "locations": [
+        {
+          "x_mm": 1,
+          "y_mm": 2
+        }
+      ]
+    }
+  ],`))
+		Expect(b.String()).To(ContainSubstring(`"findings": 1`))
 	})
 
 	It("says when the changes made the design worse", func() {
