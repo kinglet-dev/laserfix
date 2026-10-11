@@ -35,6 +35,8 @@ type Settings struct {
 	Same      float64         // lines nearer than this are the same line, mm
 	Crossings crossing.Params // how line burned twice is measured
 	MaxShared int             // limit on the search for shared line, so huge designs fail clearly
+	Join      float64         // ends nearer than this are joined, mm
+	Gaps      float64         // gaps wider than Join and up to this are reported, mm
 }
 
 // DefaultSettings are laserfix's defaults; the measurements match
@@ -43,6 +45,8 @@ var DefaultSettings = Settings{
 	Same:      0.02,
 	Crossings: crossing.Params{Merge: 0.1, Cell: 1, MaxSegments: 5_000_000, MaxEntries: 10_000_000},
 	MaxShared: 10_000_000,
+	Join:      0.05,
+	Gaps:      1,
 }
 
 // Fixer fixes documents through its ports, given at construction.
@@ -77,6 +81,9 @@ func (f *Fixer) Fix(src []byte, s Settings) (Report, error) {
 		return Report{}, fmt.Errorf("reading the changed document: %w", err)
 	}
 	r.After, err = measure(after, s)
+	if shown(r.After.Stacked) > 0 {
+		r.Findings = append(r.Findings, Finding{Kind: Stacked, Locations: r.After.Stacks, Size: r.After.Stacked})
+	}
 	return r, err
 }
 
@@ -96,5 +103,9 @@ func length(l geom.Polyline) float64 {
 // measure finds how much of a design burns twice.
 func measure(d design.Design, s Settings) (Measure, error) {
 	r, err := crossing.Find(d.ScoredLines(flatten), s.Crossings)
-	return Measure{Stacked: r.Stacked, Crossings: len(r.Crossings)}, err
+	m := Measure{Stacked: r.Stacked, Crossings: len(r.Crossings)}
+	for _, st := range r.Stacks {
+		m.Stacks = append(m.Stacks, st.At)
+	}
+	return m, err
 }

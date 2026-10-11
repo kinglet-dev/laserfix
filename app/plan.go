@@ -25,8 +25,9 @@ func plan(d design.Design, s Settings, r *Report) ([]Edit, error) {
 		shape := d.Shapes[t.Shape]
 		r.Changes = append(r.Changes, Change{Kind: Trim, Element: shape.Element, At: t.At, Length: t.Removed})
 		edits = append(edits, Edit{Element: shape.Element, Path: overlap.Cut(shape.Local, t.Keep)})
+		gone[t.Shape] = true
 	}
-	return edits, nil
+	return append(edits, joins(d, gone, s, r)...), nil
 }
 
 // copyChange describes removing shape, a copy of of.
