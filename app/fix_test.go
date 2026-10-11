@@ -95,4 +95,18 @@ var _ = Describe("Fix removes shapes that copy an earlier shape", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(r.Settings).To(Equal(s))
 	})
+
+	It("finds a circle copied as a path of arcs, inside a group moved by nothing", func() {
+		// Arrange
+		circle := `<circle cx="50" cy="50" r="20" fill="none" stroke="#000"/>`
+		arcs := `<g transform="translate(0 0)"><path d="M70 50 A20 20 0 0 1 30 50 A20 20 0 0 1 70 50Z" fill="none" stroke="#000"/></g>`
+
+		// Act
+		r, err := fixer.Fix(doc(circle+arcs), app.DefaultSettings)
+
+		// Assert: the path is element 3, inside the group (2).
+		Expect(err).NotTo(HaveOccurred())
+		Expect(r.Changes).To(HaveLen(1))
+		Expect([]int{r.Changes[0].Element, r.Changes[0].Of}).To(Equal([]int{3, 1}))
+	})
 })
