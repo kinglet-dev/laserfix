@@ -20,8 +20,8 @@ github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 h1:EwtI+Al+DeppwYX2oX
 github.com/google/pprof v0.0.0-20260402051712-545e8a4df936/go.mod h1:MxpfABSjhmINe3F1It9d+8exIHFvUqtLIRCdOGNXqiI=
 github.com/joshdk/go-junit v1.0.0 h1:S86cUKIdwBHWwA6xCmFlf3RTLfVXYQfvanM5Uh+K6GE=
 github.com/joshdk/go-junit v1.0.0/go.mod h1:TiiV0PqkaNfFXjEiyjWM3XXrhVyCa1K4Zfga6W52ung=
-github.com/kinglet-dev/core v0.3.0 h1:Bu7BWkeY52G9cnCAHOXm6M+xkFGEeQAfameB6WkfC6o=
-github.com/kinglet-dev/core v0.3.0/go.mod h1:nj24+YDzhrxIexKY92lQeDMTU75HR6GzArtX5pplXcM=
+github.com/kinglet-dev/core v0.4.0 h1:Sdyu9+6IH20uHjeBYchRS8IfRCo3U0vmgRpno0m8Ogw=
+github.com/kinglet-dev/core v0.4.0/go.mod h1:nj24+YDzhrxIexKY92lQeDMTU75HR6GzArtX5pplXcM=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=

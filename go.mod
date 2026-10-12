@@ -5,7 +5,7 @@ go 1.27.1
 tool github.com/onsi/ginkgo/v2/ginkgo
 
 require (
-	github.com/kinglet-dev/core v0.3.0
+	github.com/kinglet-dev/core v0.4.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 )
