@@ -2,7 +2,7 @@
 # Writes a flat SVG badge to standard output, made here so no badge service
 # sees the repository. Usage: scripts/badge.sh LABEL VALUE [COLOR]
 # Text is white; the default color is green (#1A7F37, 5.1:1 with white),
-# and the label side is grey (#3D444D, 9.9:1), both above WCAG AA's 4.5:1.
+# and the label side is gray (#3D444D, 9.9:1), both above WCAG AA's 4.5:1.
 set -euo pipefail
 label="$1" value="$2" color="${3:-#1A7F37}"
 esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' <<<"$1"; }
