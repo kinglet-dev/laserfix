@@ -6,7 +6,7 @@ import "io/fs"
 type Step string
 
 // Fail returns Write with one step failing with err, and the names it
-// removed afterwards, for tests of the cleanup.
+// removed afterward, for tests of the cleanup.
 func Fail(step Step, err error) (write func(name string, data []byte) error, removed *[]string) {
 	s := osSystem
 	var gone []string
