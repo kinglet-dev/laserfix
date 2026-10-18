@@ -11,3 +11,6 @@
 .DS_Store
 Thumbs.db
 *.swp
+
+# WebAssembly runner copied in by the release build
+/build/

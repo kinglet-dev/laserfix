@@ -1,12 +1,21 @@
-# Builds laserfix's release: binaries for Windows, macOS and Linux, with
-# SHA-256 checksums and an SBOM (software bill of materials) per archive.
+# Builds laserfix's release: binaries for Windows, macOS and Linux, a
+# WebAssembly copy for web browsers with the matching wasm_exec.js, SHA-256
+# checksums and an SBOM (software bill of materials) per archive.
 # Run by .github/workflows/release.yml when a version tag (v1.2.3) is pushed.
 version: 2
 
 project_name: laserfix
 
+before:
+  hooks:
+    # A WebAssembly copy only runs with the wasm_exec.js of the Go version
+    # that built it, so the release carries that file and Go's license
+    # (BSD-3-Clause) with it.
+    - sh -c 'mkdir -p build/wasm && cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" "$(go env GOROOT)/LICENSE" build/wasm/'
+
 builds:
-  - main: ./cmd/laserfix
+  - id: laserfix
+    main: ./cmd/laserfix
     binary: laserfix
     env:
       - CGO_ENABLED=0
@@ -16,9 +25,24 @@ builds:
     flags: [-trimpath]
     ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
     mod_timestamp: "{{ .CommitTimestamp }}"
+  # The same program for web browsers: it reads the design from standard
+  # input and writes the repaired copy to standard output, like
+  # `laserfix - -o -`.
+  - id: laserfix-wasm
+    main: ./cmd/laserfix
+    binary: laserfix
+    env:
+      - CGO_ENABLED=0
+    goos: [js]
+    goarch: [wasm]
+    flags: [-trimpath]
+    ldflags: ["-s -w -buildid= -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
-  - formats: [tar.gz]
+  - id: laserfix
+    ids: [laserfix]
+    formats: [tar.gz]
     format_overrides:
       - goos: windows
         formats: [zip]
@@ -33,9 +57,20 @@ archives:
       - src: CHANGELOG.md
         info: { mtime: "{{ .CommitDate }}" }
 
+  # The WebAssembly copy as a plain file, as browsers load it.
+  - id: laserfix-wasm
+    ids: [laserfix-wasm]
+    formats: [binary]
+    name_template: "{{ .ProjectName }}_{{ .Version }}"
+
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
   algorithm: sha256
+  extra_files:
+    - glob: build/wasm/wasm_exec.js
+      name_template: "{{ .ProjectName }}_{{ .Version }}_wasm_exec.js"
+    - glob: build/wasm/LICENSE
+      name_template: "{{ .ProjectName }}_{{ .Version }}_wasm_exec_LICENSE.txt"
 
 sboms:
   - artifacts: archive
@@ -44,3 +79,8 @@ sboms:
 # set changelog.disable: it also stops GoReleaser loading that file.
 release:
   draft: true # published by hand after a last look
+  extra_files:
+    - glob: build/wasm/wasm_exec.js
+      name_template: "{{ .ProjectName }}_{{ .Version }}_wasm_exec.js"
+    - glob: build/wasm/LICENSE
+      name_template: "{{ .ProjectName }}_{{ .Version }}_wasm_exec_LICENSE.txt"

@@ -91,6 +91,8 @@ The programs aren't signed with an Apple or Microsoft certificate yet. On a Mac,
 
 **From source:** with [Go](https://go.dev/dl/) 1.27 or later, run `go install github.com/kinglet-dev/laserfix/cmd/laserfix@latest`.
 
+**For web browsers:** each release also has `laserfix_<version>.wasm`, the same program built for WebAssembly, with the `laserfix_<version>_wasm_exec.js` it needs to run (from the Go version that built it, under Go's BSD-3-Clause license: `laserfix_<version>_wasm_exec_LICENSE.txt`). It reads the design from standard input and, with `-o -`, writes the repaired copy to standard output, like `laserfix - -o -`, with the same report and exit status.
+
 ## Usage
 
 ```text
@@ -118,6 +120,7 @@ Lengths need a unit: `mm`, `cm`, `in`, `pt` or `px`. Flags can come before or af
 ## Compatibility
 
 - **Systems:** Windows, macOS and Linux, on 64-bit Intel/AMD (`amd64`) and Arm (`arm64`). Tested on all three in CI.
+- **Web browsers:** the WebAssembly copy (`js/wasm`) runs in current browsers and in Node.js; CI checks that it gives exactly the same output as the native program.
 - **SVG:** what [laserlint](https://github.com/kinglet-dev/laserlint#compatibility) reads: `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon` and groups, with transforms, `viewBox` and sizes in any unit.
 - **Not read yet:** clones (`<use>`), text, embedded images and CSS classes. laserfix stops with the Inkscape fix: Edit → Clone → Unlink Clone, or Path → Object to Path.
 - **Limits:** files up to 25 MB and 200,000 elements, and a cap on the work of finding shared line, so a hostile file can't hang it.

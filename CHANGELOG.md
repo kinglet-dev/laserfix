@@ -4,6 +4,12 @@ All notable changes to laserfix are listed here. It follows
 [Semantic Versioning](https://semver.org/): the command line, the exit codes
 and the JSON report (`kinglet.report/v1`) don't break within a major version.
 
+## Unreleased
+
+### Added
+
+- A WebAssembly copy of laserfix for web browsers, `laserfix_<version>.wasm`, published with each release alongside the `wasm_exec.js` that runs it and Go's license for that file. It reads the design from standard input and writes the repaired copy to standard output, like `laserfix - -o -`, with exactly the same report and exit status as the native program; a new end-to-end test checks this on every change.
+
 ## 0.1.0 (2026-10-11)
 
 ### Added
